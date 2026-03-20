@@ -32,6 +32,35 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
 .AddRoles<IdentityRole>()
 .AddEntityFrameworkStores<ApplicationDbContext>();
 
+// Add external authentication (Google, Facebook, Twitter)
+// Uncomment and add your OAuth credentials in appsettings.json
+// builder.Services.AddAuthentication()
+//     .AddGoogle(options =>
+//     {
+//         options.ClientId = builder.Configuration["Authentication:Google:ClientId"];
+//         options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
+//     })
+//     .AddFacebook(options =>
+//     {
+//         options.ClientId = builder.Configuration["Authentication:Facebook:ClientId"];
+//         options.ClientSecret = builder.Configuration["Authentication:Facebook:ClientSecret"];
+//     })
+//     .AddTwitter(options =>
+//     {
+//         options.ClientId = builder.Configuration["Authentication:Twitter:ClientId"];
+//         options.ClientSecret = builder.Configuration["Authentication:Twitter:ClientSecret"];
+//     });
+
+builder.Services.AddMemoryCache();
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
+
+builder.Services.AddHttpContextAccessor();
+
 // Add services
 builder.Services.AddScoped<ICampaignService, CampaignService>();
 
@@ -45,8 +74,11 @@ builder.Services.AddRazorPages(options =>
     options.Conventions.AuthorizeFolder("/Events");
     options.Conventions.AuthorizeFolder("/Timeline");
     options.Conventions.AuthorizeFolder("/Dashboard");
+    options.Conventions.AuthorizeFolder("/Forum");
     options.Conventions.AllowAnonymousToPage("/Index");
     options.Conventions.AllowAnonymousToPage("/Privacy");
+    options.Conventions.AllowAnonymousToPage("/Account/Login");
+    options.Conventions.AllowAnonymousToPage("/Account/Register");
 });
 
 builder.Services.ConfigureApplicationCookie(options =>
@@ -58,13 +90,13 @@ builder.Services.ConfigureApplicationCookie(options =>
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
 }
 
 app.UseStaticFiles();
+app.UseSession();
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();

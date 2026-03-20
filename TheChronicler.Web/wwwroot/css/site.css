@@ -355,3 +355,144 @@ main.container {
 ::-webkit-scrollbar-thumb:hover {
     background: var(--chr-text-muted);
 }
+
+/* Forum Styles */
+.category-badge {
+    background-color: var(--chr-bg-surface);
+    color: var(--chr-gold);
+    border: 1px solid var(--chr-gold-dim);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.forum-post-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.forum-post-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(212, 168, 67, 0.1);
+}
+
+.list-group-item {
+    background-color: var(--chr-bg-card);
+    border-color: var(--chr-border);
+    color: var(--chr-text-muted);
+}
+
+.list-group-item.active {
+    background-color: var(--chr-gold);
+    border-color: var(--chr-gold);
+    color: #0d1117;
+}
+
+/* Character Stats */
+.stat-input {
+    background-color: var(--chr-bg-surface) !important;
+    border-color: var(--chr-border) !important;
+    font-weight: bold;
+    color: var(--chr-gold) !important;
+    cursor: default;
+}
+
+.stat-input:focus {
+    border-color: var(--chr-gold-dim) !important;
+    box-shadow: none !important;
+}
+
+/* Avatar */
+.avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: var(--chr-bg-surface);
+    border: 2px solid var(--chr-gold-dim);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: var(--chr-gold);
+    font-size: 1rem;
+}
+
+.avatar-circle-sm {
+    width: 30px;
+    height: 30px;
+    font-size: 0.8rem;
+}
+
+.avatar-circle-lg {
+    width: 80px;
+    height: 80px;
+    font-size: 2rem;
+}
+
+/* Divider */
+.chr-divider {
+    border-color: var(--chr-border);
+    opacity: 0.5;
+}
+
+/* GM Notes styling */
+.gm-notes {
+    background-color: rgba(201, 64, 64, 0.05);
+    border: 1px dashed var(--chr-red);
+    border-radius: 6px;
+}
+
+/* Recruitment badges */
+.badge-lfg {
+    background-color: var(--chr-green);
+    color: #0d1117;
+}
+
+.badge-lfm {
+    background-color: var(--chr-blue);
+    color: #0d1117;
+}
+
+.badge-lfgm {
+    background-color: var(--chr-gold);
+    color: #0d1117;
+}
+
+/* NPC Role badges */
+.badge-antagonist {
+    background-color: var(--chr-red);
+    color: #fff;
+}
+
+.badge-ally {
+    background-color: var(--chr-green);
+    color: #0d1117;
+}
+
+.badge-merchant {
+    background-color: #d29922;
+    color: #0d1117;
+}
+
+.badge-plot-driver {
+    background-color: var(--chr-purple);
+    color: #fff;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .hero-section {
+        padding: 1.5rem;
+    }
+
+    .hero-section h1 {
+        font-size: 1.75rem;
+    }
+
+    .stat-card {
+        padding: 0.75rem;
+    }
+
+    .stat-card .stat-number {
+        font-size: 1.5rem;
+    }
+}

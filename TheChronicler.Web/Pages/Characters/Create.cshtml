@@ -5,55 +5,158 @@
 }
 
 <div class="page-header">
-    <h2><i class="bi bi-person-plus me-2"></i>New Character / NPC</h2>
+    <h2><i class="bi bi-person-plus me-2"></i>New Character</h2>
     <small class="text-muted">
-        <a asp-page="/Campaigns/Details" asp-route-id="@Model.CampaignId" class="entity-link">@Model.CampaignName</a>
+        <a asp-page="/Campaigns/Details" asp-route-id="@Model.CampaignId" class="entity-link text-info">@Model.CampaignName</a>
     </small>
 </div>
 
 <div class="row justify-content-center">
-    <div class="col-md-8">
+    <div class="col-md-10">
         <div class="card">
             <div class="card-body p-4">
-                <form method="post">
+                <form method="post" enctype="multipart/form-data">
                     <input type="hidden" asp-for="Character.CampaignId" value="@Model.CampaignId" />
                     <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
-                    <div class="mb-3">
-                        <label asp-for="Character.Name" class="form-label">Name</label>
-                        <input asp-for="Character.Name" class="form-control" placeholder="Gandalf the Grey" />
-                        <span asp-validation-for="Character.Name" class="text-danger"></span>
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label asp-for="Character.Name" class="form-label">Name</label>
+                            <div class="input-group">
+                                <input asp-for="Character.Name" class="form-control" placeholder="Gandalf the Grey" id="CharacterName" />
+                                <button type="button" class="btn btn-outline-secondary" onclick="generateRandomName()">
+                                    <i class="bi bi-shuffle"></i> Random
+                                </button>
+                            </div>
+                            <span asp-validation-for="Character.Name" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Portrait (optional)</label>
+                            <input type="file" name="PortraitFile" class="form-control" accept="image/*" />
+                        </div>
                     </div>
 
                     <div class="row">
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
                             <label asp-for="Character.Type" class="form-label">Type</label>
-                            <select asp-for="Character.Type" asp-items="Html.GetEnumSelectList<CharacterType>()" class="form-select"></select>
+                            <select asp-for="Character.Type" class="form-select" id="CharacterType" onchange="toggleNPCRoles()">
+                                <option value="0">Player</option>
+                                <option value="1">NPC</option>
+                            </select>
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3" id="npcRoleSection" style="display:none;">
+                            <label class="form-label">NPC Role</label>
+                            <select asp-for="Character.NPCRole" class="form-select">
+                                <option value="0">None</option>
+                                <option value="1">Antagonist</option>
+                                <option value="2">Ally</option>
+                                <option value="3">Merchant</option>
+                                <option value="4">Plot Driver</option>
+                                <option value="5">Quest Giver</option>
+                                <option value="6">Informant</option>
+                                <option value="7">Henchman</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
                             <label asp-for="Character.Status" class="form-label">Status</label>
-                            <select asp-for="Character.Status" asp-items="Html.GetEnumSelectList<CharacterStatus>()" class="form-select"></select>
+                            <select asp-for="Character.Status" class="form-select">
+                                <option value="0">Alive</option>
+                                <option value="1">Dead</option>
+                                <option value="2">Undead</option>
+                                <option value="3">Missing</option>
+                                <option value="4">Unknown</option>
+                            </select>
                         </div>
                     </div>
 
                     <div class="row">
                         <div class="col-md-4 mb-3">
                             <label asp-for="Character.Race" class="form-label">Race</label>
-                            <input asp-for="Character.Race" class="form-control" placeholder="Human, Elf, Dwarf..." />
+                            <input asp-for="Character.Race" class="form-control" placeholder="Human, Elf, Dwarf..." id="CharacterRace" />
                         </div>
                         <div class="col-md-4 mb-3">
                             <label asp-for="Character.Class" class="form-label">Class</label>
                             <input asp-for="Character.Class" class="form-control" placeholder="Wizard, Fighter..." />
                         </div>
                         <div class="col-md-4 mb-3">
-                            <label asp-for="Character.Role" class="form-label">Role in Campaign</label>
+                            <label asp-for="Character.Role" class="form-label">Role (optional)</label>
                             <input asp-for="Character.Role" class="form-control" placeholder="Mentor, Quest Giver..." />
                         </div>
                     </div>
 
+                    <hr class="chr-divider" />
+                    <h5 class="mb-3" style="color: var(--chr-gold);">
+                        <i class="bi bi-graph-up me-1"></i>Statistics
+                        <small class="text-muted ms-2">Points remaining: <span id="pointsRemaining" class="text-warning">27</span> / 27</small>
+                    </h5>
+
+                    <div class="row">
+                        <div class="col-md-2 mb-2">
+                            <label class="form-label text-center d-block">Strength</label>
+                            <div class="input-group">
+                                <button type="button" class="btn btn-outline-secondary" onclick="adjustStat('Strength', -1)">-</button>
+                                <input asp-for="Character.Strength" class="form-control text-center stat-input" id="Strength" readonly />
+                                <button type="button" class="btn btn-outline-secondary" onclick="adjustStat('Strength', 1)">+</button>
+                            </div>
+                        </div>
+                        <div class="col-md-2 mb-2">
+                            <label class="form-label text-center d-block">Dexterity</label>
+                            <div class="input-group">
+                                <button type="button" class="btn btn-outline-secondary" onclick="adjustStat('Dexterity', -1)">-</button>
+                                <input asp-for="Character.Dexterity" class="form-control text-center stat-input" id="Dexterity" readonly />
+                                <button type="button" class="btn btn-outline-secondary" onclick="adjustStat('Dexterity', 1)">+</button>
+                            </div>
+                        </div>
+                        <div class="col-md-2 mb-2">
+                            <label class="form-label text-center d-block">Constitution</label>
+                            <div class="input-group">
+                                <button type="button" class="btn btn-outline-secondary" onclick="adjustStat('Constitution', -1)">-</button>
+                                <input asp-for="Character.Constitution" class="form-control text-center stat-input" id="Constitution" readonly />
+                                <button type="button" class="btn btn-outline-secondary" onclick="adjustStat('Constitution', 1)">+</button>
+                            </div>
+                        </div>
+                        <div class="col-md-2 mb-2">
+                            <label class="form-label text-center d-block">Intelligence</label>
+                            <div class="input-group">
+                                <button type="button" class="btn btn-outline-secondary" onclick="adjustStat('Intelligence', -1)">-</button>
+                                <input asp-for="Character.Intelligence" class="form-control text-center stat-input" id="Intelligence" readonly />
+                                <button type="button" class="btn btn-outline-secondary" onclick="adjustStat('Intelligence', 1)">+</button>
+                            </div>
+                        </div>
+                        <div class="col-md-2 mb-2">
+                            <label class="form-label text-center d-block">Wisdom</label>
+                            <div class="input-group">
+                                <button type="button" class="btn btn-outline-secondary" onclick="adjustStat('Wisdom', -1)">-</button>
+                                <input asp-for="Character.Wisdom" class="form-control text-center stat-input" id="Wisdom" readonly />
+                                <button type="button" class="btn btn-outline-secondary" onclick="adjustStat('Wisdom', 1)">+</button>
+                            </div>
+                        </div>
+                        <div class="col-md-2 mb-2">
+                            <label class="form-label text-center d-block">Charisma</label>
+                            <div class="input-group">
+                                <button type="button" class="btn btn-outline-secondary" onclick="adjustStat('Charisma', -1)">-</button>
+                                <input asp-for="Character.Charisma" class="form-control text-center stat-input" id="Charisma" readonly />
+                                <button type="button" class="btn btn-outline-secondary" onclick="adjustStat('Charisma', 1)">+</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="chr-divider" />
+
                     <div class="mb-3">
                         <label asp-for="Character.Description" class="form-label">Description</label>
-                        <textarea asp-for="Character.Description" class="form-control" rows="4" placeholder="Describe this character..."></textarea>
+                        <textarea asp-for="Character.Description" class="form-control" rows="3" placeholder="Describe this character..."></textarea>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Character.SharedNotes" class="form-label">Shared Notes (everyone can see)</label>
+                            <textarea asp-for="Character.SharedNotes" class="form-control" rows="3" placeholder="Visible to all players..."></textarea>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Character.GMNotes" class="form-label">GM Notes (only GM can see)</label>
+                            <textarea asp-for="Character.GMNotes" class="form-control" rows="3" placeholder="Private notes..."></textarea>
+                        </div>
                     </div>
 
                     <div class="d-flex justify-content-between">
@@ -69,3 +172,60 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        const MAX_POINTS = 27;
+        const BASE_STAT = 10;
+        let usedPoints = 0;
+
+        function calculateUsedPoints() {
+            usedPoints = 0;
+            ['Strength', 'Dexterity', 'Constitution', 'Intelligence', 'Wisdom', 'Charisma'].forEach(stat => {
+                const val = parseInt(document.getElementById(stat).value) || 10;
+                if (val > BASE_STAT) {
+                    usedPoints += (val - BASE_STAT);
+                }
+            });
+            document.getElementById('pointsRemaining').textContent = MAX_POINTS - usedPoints;
+        }
+
+        function adjustStat(stat, delta) {
+            const input = document.getElementById(stat);
+            let val = parseInt(input.value) || 10;
+            const newVal = val + delta;
+            
+            if (newVal >= 1 && newVal <= 20) {
+                const oldExtra = val > BASE_STAT ? val - BASE_STAT : 0;
+                const newExtra = newVal > BASE_STAT ? newVal - BASE_STAT : 0;
+                const pointCost = newExtra - oldExtra;
+                
+                if (pointCost <= MAX_POINTS - usedPoints || delta < 0) {
+                    input.value = newVal;
+                    calculateUsedPoints();
+                }
+            }
+        }
+
+        function toggleNPCRoles() {
+            const type = document.getElementById('CharacterType').value;
+            const npcSection = document.getElementById('npcRoleSection');
+            npcSection.style.display = type === '1' ? 'block' : 'none';
+        }
+
+        function generateRandomName() {
+            const races = ['Human', 'Elf', 'Dwarf', 'Halfling', 'Orc', 'Tiefling', 'Dragonborn'];
+            const race = races[Math.floor(Math.random() * races.length)];
+            document.getElementById('CharacterRace').value = race;
+            
+            const firstNames = ['Aldric', 'Brenna', 'Cedric', 'Dara', 'Eldric', 'Freya', 'Gareth', 'Helena', 'Idris', 'Jasmine', 'Kael', 'Luna', 'Magnus', 'Nadia', 'Orion', 'Rowan', 'Soren', 'Thalia', 'Wren', 'Zephyr'];
+            const lastNames = ['Blackwood', 'Stormwind', 'Ironforge', 'Shadowmere', 'Brightblade', 'Frostborn', 'Moonwhisper', 'Stoneheart', 'Thornwood', 'Dragonbane'];
+            
+            const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
+            const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
+            document.getElementById('CharacterName').value = firstName + ' ' + lastName;
+        }
+
+        calculateUsedPoints();
+    </script>
+}
