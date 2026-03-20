@@ -1,0 +1,71 @@
+@page
+@model TheChronicler.Web.Pages.Characters.CreateModel
+@{
+    ViewData["Title"] = "New Character";
+}
+
+<div class="page-header">
+    <h2><i class="bi bi-person-plus me-2"></i>New Character / NPC</h2>
+    <small class="text-muted">
+        <a asp-page="/Campaigns/Details" asp-route-id="@Model.CampaignId" class="entity-link">@Model.CampaignName</a>
+    </small>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body p-4">
+                <form method="post">
+                    <input type="hidden" asp-for="Character.CampaignId" value="@Model.CampaignId" />
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="Character.Name" class="form-label">Name</label>
+                        <input asp-for="Character.Name" class="form-control" placeholder="Gandalf the Grey" />
+                        <span asp-validation-for="Character.Name" class="text-danger"></span>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Character.Type" class="form-label">Type</label>
+                            <select asp-for="Character.Type" asp-items="Html.GetEnumSelectList<CharacterType>()" class="form-select"></select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Character.Status" class="form-label">Status</label>
+                            <select asp-for="Character.Status" asp-items="Html.GetEnumSelectList<CharacterStatus>()" class="form-select"></select>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label asp-for="Character.Race" class="form-label">Race</label>
+                            <input asp-for="Character.Race" class="form-control" placeholder="Human, Elf, Dwarf..." />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label asp-for="Character.Class" class="form-label">Class</label>
+                            <input asp-for="Character.Class" class="form-control" placeholder="Wizard, Fighter..." />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label asp-for="Character.Role" class="form-label">Role in Campaign</label>
+                            <input asp-for="Character.Role" class="form-control" placeholder="Mentor, Quest Giver..." />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Character.Description" class="form-label">Description</label>
+                        <textarea asp-for="Character.Description" class="form-control" rows="4" placeholder="Describe this character..."></textarea>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a asp-page="/Characters/Index" asp-route-campaignId="@Model.CampaignId" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-1"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-chronicle">
+                            <i class="bi bi-check-lg me-1"></i>Create Character
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
