@@ -15,7 +15,8 @@ namespace ChroniclerData.Models
         public string Notes { get; set; }
         public bool IsKeySession { get; set; }
         public int CreatedBy { get; set; }
-        public User? User { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public User? User { get; set; }
+        public Campaign? Campaign { get; set; }
     }
 }

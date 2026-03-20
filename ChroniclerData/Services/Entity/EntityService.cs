@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ChroniclerData.Services.Entity
 {
-    internal class EntityService
+    public class EntityService
     {
     }
 }

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ChroniclerData.Services.Campaign
 {
-    internal class CampaignService
+    public class CampaignService
     {
     }
 }

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ChroniclerData.Services.Session
 {
-    internal class SessionService
+    public class SessionService
     {
     }
 }

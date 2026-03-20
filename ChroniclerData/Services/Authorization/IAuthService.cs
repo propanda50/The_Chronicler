@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ChroniclerData.Controller
+namespace ChroniclerData.Services.Authorization
 {
-    public class AuthController
+    public interface IAuthService
     {
     }
 }
