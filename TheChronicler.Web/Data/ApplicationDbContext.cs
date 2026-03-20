@@ -19,12 +19,14 @@ namespace TheChronicler.Web.Data
         public DbSet<Event> Events => Set<Event>();
         public DbSet<SessionCharacter> SessionCharacters => Set<SessionCharacter>();
         public DbSet<SessionLocation> SessionLocations => Set<SessionLocation>();
+        public DbSet<ForumPost> ForumPosts => Set<ForumPost>();
+        public DbSet<ForumReply> ForumReplies => Set<ForumReply>();
+        public DbSet<UploadedFile> UploadedFiles => Set<UploadedFile>();
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
 
-            // Campaign
             builder.Entity<Campaign>(entity =>
             {
                 entity.HasIndex(c => c.OwnerId);
@@ -36,7 +38,6 @@ namespace TheChronicler.Web.Data
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
-            // CampaignMember
             builder.Entity<CampaignMember>(entity =>
             {
                 entity.HasIndex(cm => new { cm.CampaignId, cm.UserId }).IsUnique();
@@ -52,7 +53,6 @@ namespace TheChronicler.Web.Data
                     .OnDelete(DeleteBehavior.Cascade);
             });
 
-            // Session
             builder.Entity<Session>(entity =>
             {
                 entity.HasIndex(s => new { s.CampaignId, s.SessionNumber }).IsUnique();
@@ -63,7 +63,6 @@ namespace TheChronicler.Web.Data
                     .OnDelete(DeleteBehavior.Cascade);
             });
 
-            // Character
             builder.Entity<Character>(entity =>
             {
                 entity.HasIndex(ch => ch.CampaignId);
@@ -74,7 +73,6 @@ namespace TheChronicler.Web.Data
                     .OnDelete(DeleteBehavior.Cascade);
             });
 
-            // Location
             builder.Entity<Location>(entity =>
             {
                 entity.HasIndex(l => l.CampaignId);
@@ -85,7 +83,6 @@ namespace TheChronicler.Web.Data
                     .OnDelete(DeleteBehavior.Cascade);
             });
 
-            // Event
             builder.Entity<Event>(entity =>
             {
                 entity.HasIndex(e => e.CampaignId);
@@ -102,7 +99,6 @@ namespace TheChronicler.Web.Data
                     .OnDelete(DeleteBehavior.SetNull);
             });
 
-            // SessionCharacter (join table)
             builder.Entity<SessionCharacter>(entity =>
             {
                 entity.HasIndex(sc => new { sc.SessionId, sc.CharacterId }).IsUnique();
@@ -118,7 +114,6 @@ namespace TheChronicler.Web.Data
                     .OnDelete(DeleteBehavior.Cascade);
             });
 
-            // SessionLocation (join table)
             builder.Entity<SessionLocation>(entity =>
             {
                 entity.HasIndex(sl => new { sl.SessionId, sl.LocationId }).IsUnique();
@@ -132,6 +127,65 @@ namespace TheChronicler.Web.Data
                     .WithMany(l => l.SessionLocations)
                     .HasForeignKey(sl => sl.LocationId)
                     .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<ForumPost>(entity =>
+            {
+                entity.HasIndex(fp => fp.CampaignId);
+                entity.HasIndex(fp => fp.AuthorId);
+
+                entity.HasOne(fp => fp.Campaign)
+                    .WithMany(c => c.ForumPosts)
+                    .HasForeignKey(fp => fp.CampaignId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(fp => fp.Author)
+                    .WithMany()
+                    .HasForeignKey(fp => fp.AuthorId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<ForumReply>(entity =>
+            {
+                entity.HasIndex(fr => fr.PostId);
+                entity.HasIndex(fr => fr.AuthorId);
+
+                entity.HasOne(fr => fr.Post)
+                    .WithMany(p => p.Replies)
+                    .HasForeignKey(fr => fr.PostId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(fr => fr.Author)
+                    .WithMany()
+                    .HasForeignKey(fr => fr.AuthorId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<UploadedFile>(entity =>
+            {
+                entity.HasIndex(uf => uf.UploadedById);
+                entity.HasIndex(uf => uf.CampaignId);
+                entity.HasIndex(uf => uf.CharacterId);
+
+                entity.HasOne(uf => uf.UploadedBy)
+                    .WithMany()
+                    .HasForeignKey(uf => uf.UploadedById)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(uf => uf.Campaign)
+                    .WithMany()
+                    .HasForeignKey(uf => uf.CampaignId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne(uf => uf.Character)
+                    .WithMany()
+                    .HasForeignKey(uf => uf.CharacterId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne(uf => uf.Location)
+                    .WithMany()
+                    .HasForeignKey(uf => uf.LocationId)
+                    .OnDelete(DeleteBehavior.SetNull);
             });
         }
     }

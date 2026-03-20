@@ -7,16 +7,27 @@ namespace TheChronicler.Web.Models
     {
         Alive,
         Dead,
+        Undead,
         Missing,
         Unknown
     }
 
     public enum CharacterType
     {
-        PlayerCharacter,
-        NPC,
-        Villain,
-        Ally
+        Player,
+        NPC
+    }
+
+    public enum NPCRoles
+    {
+        None,
+        Antagonist,
+        Ally,
+        Merchant,
+        PlotDriver,
+        QuestGiver,
+        Informant,
+        Henchman
     }
 
     public class Character
@@ -30,7 +41,7 @@ namespace TheChronicler.Web.Models
         public string Description { get; set; } = string.Empty;
 
         [MaxLength(200)]
-        public string Role { get; set; } = string.Empty;
+        public string? Role { get; set; }
 
         [MaxLength(100)]
         public string Race { get; set; } = string.Empty;
@@ -38,19 +49,36 @@ namespace TheChronicler.Web.Models
         [MaxLength(100)]
         public string Class { get; set; } = string.Empty;
 
+        [MaxLength(500)]
+        public string? PortraitUrl { get; set; }
+
+        public string? PortraitData { get; set; }
+
         public CharacterStatus Status { get; set; } = CharacterStatus.Alive;
-        public CharacterType Type { get; set; } = CharacterType.NPC;
+        public CharacterType Type { get; set; } = CharacterType.Player;
+        public NPCRoles NPCRole { get; set; } = NPCRoles.None;
+
+        public int Strength { get; set; } = 10;
+        public int Dexterity { get; set; } = 10;
+        public int Constitution { get; set; } = 10;
+        public int Intelligence { get; set; } = 10;
+        public int Wisdom { get; set; } = 10;
+        public int Charisma { get; set; } = 10;
+
+        [MaxLength(2000)]
+        public string? GMNotes { get; set; }
+
+        [MaxLength(2000)]
+        public string? SharedNotes { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
-        // Campaign
         public int CampaignId { get; set; }
 
         [ForeignKey(nameof(CampaignId))]
         public Campaign Campaign { get; set; } = null!;
 
-        // Navigation
         public ICollection<SessionCharacter> SessionCharacters { get; set; } = new List<SessionCharacter>();
     }
 }

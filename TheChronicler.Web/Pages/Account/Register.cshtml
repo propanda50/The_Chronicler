@@ -5,7 +5,7 @@
 }
 
 <div class="row justify-content-center">
-    <div class="col-md-5">
+    <div class="col-md-6">
         <div class="card">
             <div class="card-body p-4">
                 <div class="text-center mb-4">
@@ -14,7 +14,7 @@
                     <p class="text-muted">Create your campaign journal account</p>
                 </div>
 
-                <form method="post">
+                <form method="post" enctype="multipart/form-data">
                     <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
                     <div class="mb-3">
@@ -39,6 +39,52 @@
                         <label asp-for="Input.ConfirmPassword" class="form-label">Confirm Password</label>
                         <input asp-for="Input.ConfirmPassword" class="form-control" placeholder="Confirm your password" />
                         <span asp-validation-for="Input.ConfirmPassword" class="text-danger"></span>
+                    </div>
+
+                    <hr class="chr-divider" />
+                    <h5 class="mb-3" style="color: var(--chr-gold);">Tell us about yourself</h5>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.PreferredLanguage" class="form-label">Preferred Language</label>
+                        <select asp-for="Input.PreferredLanguage" class="form-select">
+                            <option value="en">English</option>
+                            <option value="nl">Nederlands</option>
+                            <option value="fr">Français</option>
+                        </select>
+                        <small class="text-muted">You can change this later in settings</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">How do you play?</label>
+                        <select asp-for="Input.PlayStyle" class="form-select">
+                            <option value="">Select an option...</option>
+                            <option value="0">I play solo</option>
+                            <option value="1">I'm looking for players</option>
+                            <option value="2">I'm looking for a Game Master</option>
+                            <option value="3">I'm ready to organize games</option>
+                            <option value="4">My group is ready to play</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Experience Level</label>
+                        <select asp-for="Input.ExperienceLevel" class="form-select">
+                            <option value="">Select your experience...</option>
+                            <option value="0">I'm completely new</option>
+                            <option value="1">I've played a bit</option>
+                            <option value="2">I'm experienced (bonus XP!)</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Bio (optional)</label>
+                        <textarea asp-for="Input.Bio" class="form-control" rows="3" placeholder="Tell us about yourself, your favorite games, etc."></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Avatar (optional)</label>
+                        <input type="file" name="AvatarFile" class="form-control" accept="image/*" />
+                        <small class="text-muted">Upload a profile picture or leave blank for default</small>
                     </div>
 
                     <button type="submit" class="btn btn-chronicle w-100 mb-3">

@@ -5,7 +5,7 @@ using TheChronicler.Web.Data;
 using TheChronicler.Web.Models;
 using TheChronicler.Web.Services;
 
-namespace TheChronicler.Web.Pages.Characters
+namespace TheChronicler.Web.Pages.Forum
 {
     public class CreateModel : PageModel
     {
@@ -21,7 +21,7 @@ namespace TheChronicler.Web.Pages.Characters
         }
 
         [BindProperty]
-        public Character Character { get; set; } = new();
+        public ForumPost Post { get; set; } = new();
 
         public int CampaignId { get; set; }
         public string CampaignName { get; set; } = string.Empty;
@@ -29,7 +29,7 @@ namespace TheChronicler.Web.Pages.Characters
         public async Task<IActionResult> OnGetAsync(int campaignId)
         {
             var userId = _userManager.GetUserId(User)!;
-            if (!await _campaignService.CanUserEdit(campaignId, userId))
+            if (!await _campaignService.IsUserMember(campaignId, userId))
                 return RedirectToPage("/Account/AccessDenied");
 
             CampaignId = campaignId;
@@ -41,39 +41,24 @@ namespace TheChronicler.Web.Pages.Characters
         public async Task<IActionResult> OnPostAsync()
         {
             var userId = _userManager.GetUserId(User)!;
-            if (!await _campaignService.CanUserEdit(Character.CampaignId, userId))
+            if (!await _campaignService.IsUserMember(Post.CampaignId, userId))
                 return RedirectToPage("/Account/AccessDenied");
-
-            ModelState.Remove("Character.Campaign");
 
             if (!ModelState.IsValid)
             {
-                CampaignId = Character.CampaignId;
-                var campaign = await _context.Campaigns.FindAsync(Character.CampaignId);
-                CampaignName = campaign?.Name ?? "";
+                CampaignId = Post.CampaignId;
                 return Page();
             }
 
-            if (Request.Form.Files.Count > 0)
-            {
-                var file = Request.Form.Files[0];
-                if (file.Length > 0 && file.Length < 5 * 1024 * 1024)
-                {
-                    using var memoryStream = new MemoryStream();
-                    await file.CopyToAsync(memoryStream);
-                    Character.PortraitData = Convert.ToBase64String(memoryStream.ToArray());
-                    Character.PortraitUrl = $"data:{file.ContentType};base64,{Character.PortraitData}";
-                }
-            }
+            Post.AuthorId = userId;
+            Post.CreatedAt = DateTime.UtcNow;
+            Post.UpdatedAt = DateTime.UtcNow;
 
-            Character.CreatedAt = DateTime.UtcNow;
-            Character.UpdatedAt = DateTime.UtcNow;
-
-            _context.Characters.Add(Character);
+            _context.ForumPosts.Add(Post);
             await _context.SaveChangesAsync();
 
-            TempData["Success"] = $"Character '{Character.Name}' created!";
-            return RedirectToPage("/Characters/Details", new { id = Character.Id });
+            TempData["Success"] = "Forum post created!";
+            return RedirectToPage("/Forum/Index", new { campaignId = Post.CampaignId });
         }
     }
 }

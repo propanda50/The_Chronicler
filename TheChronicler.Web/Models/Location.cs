@@ -17,18 +17,25 @@ namespace TheChronicler.Web.Models
         public string Region { get; set; } = string.Empty;
 
         [MaxLength(100)]
-        public string Type { get; set; } = string.Empty; // City, Dungeon, Tavern, etc.
+        public string Type { get; set; } = string.Empty;
+
+        [MaxLength(500)]
+        public string? MapImageUrl { get; set; }
+
+        public string? MapImageData { get; set; }
+
+        public double? MapX { get; set; }
+
+        public double? MapY { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
-        // Campaign
         public int CampaignId { get; set; }
 
         [ForeignKey(nameof(CampaignId))]
         public Campaign Campaign { get; set; } = null!;
 
-        // Navigation
         public ICollection<SessionLocation> SessionLocations { get; set; } = new List<SessionLocation>();
     }
 }
