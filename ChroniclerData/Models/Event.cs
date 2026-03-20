@@ -6,7 +6,10 @@ using System.Threading.Tasks;
 
 namespace ChroniclerData.Models
 {
-    internal class Event
+    public class Event
     {
+        public int ID { get; set; }
+        public string Title { get; set; }
+        public string Description { get; set; }
     }
 }
