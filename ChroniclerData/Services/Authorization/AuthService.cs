@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ChroniclerData.Services.Authorization
 {
-    internal class AuthService
+    public class AuthService
     {
     }
 }

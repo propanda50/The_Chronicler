@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ChroniclerData.Controller
 {
-    internal class EntityController
+    public class EntityController
     {
     }
 }
