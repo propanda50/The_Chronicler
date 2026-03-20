@@ -4,11 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ChroniclerData
+namespace ChroniclerData.Models
 {
-    public class Campene
+    internal class User
     {
-
     }
 }
-
