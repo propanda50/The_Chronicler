@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ChroniclerData
 {
-    internal class Campene
+    public class Campene
     {
 
     }
