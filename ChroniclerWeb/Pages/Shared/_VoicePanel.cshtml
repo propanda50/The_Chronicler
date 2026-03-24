@@ -1,0 +1,204 @@
+@* Voice Chat Panel Component - Add to any campaign page *@
+
+<style>
+    .voice-panel {
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        width: 280px;
+        background: linear-gradient(145deg, #1a1a2e 0%, #16213e 100%);
+        border: 1px solid var(--chr-border);
+        border-radius: 12px;
+        z-index: 1000;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    }
+
+    .voice-header {
+        background: linear-gradient(135deg, #10b981, #059669);
+        padding: 10px 14px;
+        border-radius: 12px 12px 0 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .voice-header h6 {
+        margin: 0;
+        color: white;
+        font-weight: bold;
+    }
+
+    .voice-status {
+        font-size: 0.8rem;
+        color: rgba(255,255,255,0.8);
+    }
+
+    .voice-peers {
+        padding: 12px;
+        max-height: 150px;
+        overflow-y: auto;
+    }
+
+    .voice-peer {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px;
+        background: #1a1a2e;
+        border-radius: 8px;
+        margin-bottom: 6px;
+        color: var(--chr-text-muted);
+    }
+
+    .voice-peer.speaking {
+        border: 1px solid #10b981;
+        color: #10b981;
+    }
+
+    .voice-controls {
+        display: flex;
+        gap: 8px;
+        padding: 12px;
+        border-top: 1px solid var(--chr-border);
+    }
+
+    .voice-controls .btn {
+        flex: 1;
+        padding: 10px;
+    }
+
+    .voice-indicator {
+        width: 10px;
+        height: 10px;
+        background: #10b981;
+        border-radius: 50%;
+        animation: pulse 1s infinite;
+        display: none;
+    }
+
+    .voice-indicator.active {
+        display: block;
+    }
+
+    @@keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+
+    .push-to-talk-hint {
+        text-align: center;
+        padding: 8px;
+        font-size: 0.75rem;
+        color: var(--chr-text-muted);
+        background: rgba(16, 185, 129, 0.1);
+        border-radius: 8px;
+        margin: 0 12px 12px;
+        display: none;
+    }
+
+    .push-to-talk-hint.active {
+        display: block;
+    }
+</style>
+
+<div class="voice-panel" id="voicePanel" style="display: none;">
+    <div class="voice-header">
+        <h6><i class="bi bi-telephone-fill me-2"></i>Voice Chat</h6>
+        <span class="voice-status" id="voiceStatus">Connected</span>
+    </div>
+    
+    <div class="voice-peers" id="voicePeerList">
+        <div class="text-center text-muted small py-2">No one else in voice</div>
+    </div>
+
+    <div class="push-to-talk-hint" id="pttHint">
+        Hold SPACE to talk
+    </div>
+
+    <div class="voice-controls">
+        <button class="btn btn-outline-secondary" id="muteBtn" onclick="toggleMute()" title="Toggle Mute">
+            <i class="bi bi-mic-fill"></i>
+        </button>
+        <button class="btn btn-outline-secondary" id="deafenBtn" onclick="toggleDeafen()" title="Toggle Deafen">
+            <i class="bi bi-volume-up-fill"></i>
+        </button>
+        <button class="btn btn-outline-secondary" id="pttBtn" onclick="togglePTT()" title="Push to Talk">
+            <i class="bi bi-keyboard"></i>
+        </button>
+    </div>
+</div>
+
+<button class="btn btn-success" id="voiceToggleBtn" onclick="toggleVoice()" 
+    style="position: fixed; bottom: 80px; left: 20px; border-radius: 50%; width: 50px; height: 50px; z-index: 1001;">
+    <i class="bi bi-telephone-fill"></i>
+</button>
+
+<script>
+    let voiceEnabled = false;
+
+    async function toggleVoice() {
+        const panel = document.getElementById('voicePanel');
+        const btn = document.getElementById('voiceToggleBtn');
+
+        if (!voiceEnabled) {
+            if (!window.voiceChat) {
+                window.voiceChat = new VoiceChat(window.gameHub);
+            }
+            
+            const success = await window.voiceChat.initialize();
+            if (success) {
+                panel.style.display = 'block';
+                btn.classList.remove('btn-success');
+                btn.classList.add('btn-danger');
+                btn.innerHTML = '<i class="bi bi-telephone-x-fill"></i>';
+                voiceEnabled = true;
+            }
+        } else {
+            await window.voiceChat.disconnect();
+            panel.style.display = 'none';
+            btn.classList.remove('btn-danger');
+            btn.classList.add('btn-success');
+            btn.innerHTML = '<i class="bi bi-telephone-fill"></i>';
+            voiceEnabled = false;
+        }
+    }
+
+    function toggleMute() {
+        if (window.voiceChat) {
+            window.voiceChat.toggleMute();
+        }
+    }
+
+    function toggleDeafen() {
+        if (window.voiceChat) {
+            window.voiceChat.toggleDeafen();
+        }
+    }
+
+    function togglePTT() {
+        if (window.voiceChat) {
+            const isPTT = window.voiceChat.togglePushToTalk();
+            document.getElementById('pttHint').classList.toggle('active', isPTT);
+            document.getElementById('pttBtn').classList.toggle('btn-warning', isPTT);
+        }
+    }
+
+    // Push to Talk key handling
+    document.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' && !e.repeat && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+            e.preventDefault();
+            if (window.voiceChat) {
+                window.voiceChat.startPushToTalk();
+            }
+        }
+    });
+
+    document.addEventListener('keyup', (e) => {
+        if (e.code === 'Space' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+            e.preventDefault();
+            if (window.voiceChat) {
+                window.voiceChat.stopPushToTalk();
+            }
+        }
+    });
+</script>

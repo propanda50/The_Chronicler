@@ -1,10 +1,11 @@
+using ChroniclerWeb.Data;
+using ChroniclerWeb.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using TheChronicler.Web.Data;
-using TheChronicler.Web.Models;
 
-namespace TheChronicler.Web.Pages.Campaigns
+
+namespace ChroniclerWeb.Pages.Campaigns
 {
     public class CreateModel : PageModel
     {

@@ -1,13 +1,14 @@
+using ChroniclerWeb.Data;
+using ChroniclerWeb.Models;
+using ChroniclerWeb.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
-using TheChronicler.Web.Data;
-using TheChronicler.Web.Models;
-using TheChronicler.Web.Services;
 
-namespace TheChronicler.Web.Pages.CampaignMap
+
+namespace ChroniclerWeb.Pages.CampaignMap
 {
     [Authorize]
     public class IndexModel : PageModel

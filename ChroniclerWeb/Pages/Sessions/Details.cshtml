@@ -1,5 +1,6 @@
 @page "{id:int}"
-@model TheChronicler.Web.Pages.Sessions.DetailsModel
+@using ChroniclerWeb.Models
+@model ChroniclerWeb.Pages.Sessions.DetailsModel
 @{
     ViewData["Title"] = "Session " + Model.Session.SessionNumber + ": " + Model.Session.Title;
 }

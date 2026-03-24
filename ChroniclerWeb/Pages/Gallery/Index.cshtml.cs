@@ -3,11 +3,13 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
-using TheChronicler.Web.Data;
-using TheChronicler.Web.Models;
-using TheChronicler.Web.Services;
+using ChroniclerWeb.Data;
+using ChroniclerWeb.Models;
+using ChroniclerWeb.Services;
+using ChroniclerWeb.Services.FileUpload;
 
-namespace TheChronicler.Web.Pages.Gallery
+
+namespace ChroniclerWeb.Pages.Gallery
 {
     [Authorize]
     public class IndexModel : PageModel

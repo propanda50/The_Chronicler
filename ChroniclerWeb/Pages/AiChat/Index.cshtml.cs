@@ -1,8 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using TheChronicler.Web.Services;
+using ChroniclerWeb.Data;
+using ChroniclerWeb.Models;
+using ChroniclerWeb.Services;
+using ChroniclerWeb.Services.AIConversation;
 
-namespace TheChronicler.Web.Pages.AiChat
+
+namespace ChroniclerWeb.Pages.AiChat
 {
     public class IndexModel : PageModel
     {

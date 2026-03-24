@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ChroniclerData.Services.Campaign
+namespace ChroniclerWeb.Services
 {
     public interface ICampaignService
     {
