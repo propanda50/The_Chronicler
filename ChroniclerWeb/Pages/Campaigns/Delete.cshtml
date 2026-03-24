@@ -1,0 +1,37 @@
+@page "{id:int}"
+@model TheChronicler.Web.Pages.Campaigns.DeleteModel
+@{
+    ViewData["Title"] = "Delete Campaign";
+}
+
+<div class="page-header">
+    <h2><i class="bi bi-trash me-2" style="color: var(--chr-red);"></i>Delete Campaign</h2>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card" style="border-color: var(--chr-red);">
+            <div class="card-body p-4 text-center">
+                <i class="bi bi-exclamation-triangle" style="font-size: 3rem; color: var(--chr-red);"></i>
+                <h4 class="mt-3">Are you sure?</h4>
+                <p class="text-muted">
+                    You are about to permanently delete the campaign <strong style="color: var(--chr-gold);">@Model.Campaign.Name</strong>
+                    and all associated sessions, characters, locations, and events.
+                </p>
+                <p class="text-danger fw-bold">This action cannot be undone.</p>
+
+                <div class="d-flex justify-content-center gap-3 mt-4">
+                    <a asp-page="/Campaigns/Details" asp-route-id="@Model.Campaign.Id" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i>Cancel
+                    </a>
+                    <form method="post">
+                        <input type="hidden" asp-for="Campaign.Id" />
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-trash me-1"></i>Delete Permanently
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

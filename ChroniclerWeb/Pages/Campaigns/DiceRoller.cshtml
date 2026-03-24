@@ -1,0 +1,452 @@
+@page "/campaign/{campaignId}/dice"
+@model TheChronicler.Web.Pages.Campaigns.DiceRollerModel
+@{
+    ViewData["Title"] = "Dice Roller";
+}
+
+<style>
+    .dice-container {
+        position: fixed;
+        bottom: 80px;
+        right: 20px;
+        z-index: 1000;
+    }
+
+    .dice-panel {
+        width: 320px;
+        background: linear-gradient(145deg, #1a1a2e 0%, #16213e 100%);
+        border: 1px solid var(--chr-gold);
+        border-radius: 16px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        overflow: hidden;
+    }
+
+    .dice-header {
+        background: linear-gradient(135deg, var(--chr-gold), #c9a227);
+        padding: 12px 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: move;
+    }
+
+    .dice-header h6 {
+        margin: 0;
+        color: #1a1a2e;
+        font-weight: bold;
+    }
+
+    .dice-body {
+        padding: 16px;
+    }
+
+    .dice-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+
+    .dice-btn {
+        aspect-ratio: 1;
+        background: #16213e;
+        border: 2px solid #3a3a5a;
+        border-radius: 12px;
+        color: var(--chr-gold);
+        font-weight: bold;
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .dice-btn:hover {
+        border-color: var(--chr-gold);
+        background: #1a1a2e;
+        transform: scale(1.05);
+    }
+
+    .dice-btn:active {
+        transform: scale(0.95);
+    }
+
+    .dice-btn.selected {
+        border-color: var(--chr-gold);
+        background: rgba(201, 162, 39, 0.2);
+        box-shadow: 0 0 10px rgba(201, 162, 39, 0.3);
+    }
+
+    .dice-btn small {
+        font-size: 0.65rem;
+        color: #6c757d;
+    }
+
+    .dice-custom {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+
+    .dice-custom input {
+        background: #16213e;
+        border: 1px solid #3a3a5a;
+        color: white;
+        border-radius: 8px;
+        text-align: center;
+    }
+
+    .dice-custom input:focus {
+        border-color: var(--chr-gold);
+        outline: none;
+    }
+
+    .roll-btn {
+        width: 100%;
+        padding: 14px;
+        background: linear-gradient(135deg, var(--chr-gold), #c9a227);
+        border: none;
+        border-radius: 12px;
+        color: #1a1a2e;
+        font-weight: bold;
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .roll-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(201, 162, 39, 0.4);
+    }
+
+    .roll-btn:active {
+        transform: translateY(0);
+    }
+
+    .modifier-section {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+
+    .modifier-section label {
+        color: var(--chr-text-muted);
+        font-size: 0.9rem;
+    }
+
+    .modifier-section input {
+        width: 60px;
+        background: #16213e;
+        border: 1px solid #3a3a5a;
+        color: white;
+        border-radius: 8px;
+        text-align: center;
+        padding: 6px;
+    }
+
+    .roll-history {
+        max-height: 200px;
+        overflow-y: auto;
+        border-top: 1px solid #3a3a5a;
+        padding-top: 12px;
+    }
+
+    .roll-result {
+        background: #16213e;
+        border-radius: 8px;
+        padding: 10px 14px;
+        margin-bottom: 8px;
+        animation: slideIn 0.3s ease;
+    }
+
+    .roll-result .roll-notation {
+        color: var(--chr-text-muted);
+        font-size: 0.85rem;
+    }
+
+    .roll-result .roll-value {
+        color: var(--chr-gold);
+        font-size: 1.3rem;
+        font-weight: bold;
+    }
+
+    .roll-result .roll-breakdown {
+        color: var(--chr-text-muted);
+        font-size: 0.8rem;
+    }
+
+    .roll-natural-20 {
+        background: linear-gradient(135deg, rgba(63, 185, 80, 0.2), rgba(63, 185, 80, 0.1));
+        border: 1px solid var(--chr-green);
+    }
+
+    .roll-natural-1 {
+        background: linear-gradient(135deg, rgba(201, 64, 64, 0.2), rgba(201, 64, 64, 0.1));
+        border: 1px solid var(--chr-red);
+    }
+
+    @@keyframes slideIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .dice-toggle {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--chr-gold), #c9a227);
+        border: none;
+        color: #1a1a2e;
+        font-size: 24px;
+        cursor: pointer;
+        box-shadow: 0 4px 20px rgba(201, 162, 39, 0.4);
+        z-index: 999;
+        transition: transform 0.2s;
+    }
+
+    .dice-toggle:hover {
+        transform: scale(1.1);
+    }
+
+    .dice-toggle.active {
+        bottom: 580px;
+    }
+
+    .advantage-btns {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+
+    .adv-btn {
+        flex: 1;
+        padding: 8px;
+        border: 1px solid #3a3a5a;
+        background: #16213e;
+        color: var(--chr-text-muted);
+        border-radius: 8px;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .adv-btn:hover {
+        border-color: var(--chr-gold);
+        color: var(--chr-gold);
+    }
+
+    .adv-btn.active {
+        background: rgba(201, 162, 39, 0.2);
+        border-color: var(--chr-gold);
+        color: var(--chr-gold);
+    }
+</style>
+
+<button class="dice-toggle" id="diceToggle" onclick="toggleDicePanel()">
+    🎲
+</button>
+
+<div class="dice-container" id="diceContainer" style="display: none;">
+    <div class="dice-panel">
+        <div class="dice-header">
+            <h6><i class="bi bi-dice-5 me-2"></i>Dice Roller</h6>
+            <button class="btn btn-sm" onclick="toggleDicePanel()" style="background:transparent;border:none;color:#1a1a2e;">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+        
+        <div class="dice-body">
+            <div class="dice-grid">
+                <button class="dice-btn" onclick="selectDice('d4')" data-dice="d4">
+                    d4<small>4</small>
+                </button>
+                <button class="dice-btn" onclick="selectDice('d6')" data-dice="d6">
+                    d6<small>6</small>
+                </button>
+                <button class="dice-btn" onclick="selectDice('d8')" data-dice="d8">
+                    d8<small>8</small>
+                </button>
+                <button class="dice-btn" onclick="selectDice('d10')" data-dice="d10">
+                    d10<small>10</small>
+                </button>
+                <button class="dice-btn" onclick="selectDice('d12')" data-dice="d12">
+                    d12<small>12</small>
+                </button>
+                <button class="dice-btn selected" onclick="selectDice('d20')" data-dice="d20">
+                    d20<small>20</small>
+                </button>
+                <button class="dice-btn" onclick="selectDice('d100')" data-dice="d100">
+                    d100<small>%</small>
+                </button>
+                <button class="dice-btn" onclick="selectDice('2d6')" data-dice="2d6">
+                    2d6<small>fire</small>
+                </button>
+            </div>
+
+            <div class="dice-custom">
+                <input type="number" id="diceCount" class="form-control" value="1" min="1" max="20" />
+                <span style="color: var(--chr-text-muted); line-height: 38px;">×</span>
+                <select id="diceType" class="form-select" style="background: #16213e; border-color: #3a3a5a; color: white;">
+                    <option value="d4">d4</option>
+                    <option value="d6">d6</option>
+                    <option value="d8">d8</option>
+                    <option value="d10">d10</option>
+                    <option value="d12">d12</option>
+                    <option value="d20" selected>d20</option>
+                    <option value="d100">d100</option>
+                </select>
+            </div>
+
+            <div class="modifier-section">
+                <label>Modifier:</label>
+                <button class="btn btn-sm btn-outline-secondary" onclick="adjustModifier(-1)">-</button>
+                <input type="number" id="modifier" value="0" />
+                <button class="btn btn-sm btn-outline-secondary" onclick="adjustModifier(1)">+</button>
+            </div>
+
+            <div class="advantage-btns">
+                <button class="adv-btn active" id="normalBtn" onclick="setAdvantage('normal')">Normal</button>
+                <button class="adv-btn" id="advBtn" onclick="setAdvantage('advantage')">Advantage</button>
+                <button class="adv-btn" id="disadvBtn" onclick="setAdvantage('disadvantage')">Disadvantage</button>
+            </div>
+
+            <button class="roll-btn" onclick="rollDice()">
+                <i class="bi bi-dice-5 me-2"></i>Roll!
+            </button>
+
+            <div class="roll-history" id="rollHistory">
+                <!-- Roll results will appear here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let selectedDice = 'd20';
+        let advantageMode = 'normal';
+
+        function toggleDicePanel() {
+            const container = document.getElementById('diceContainer');
+            const toggle = document.getElementById('diceToggle');
+            const isVisible = container.style.display !== 'none';
+            container.style.display = isVisible ? 'none' : 'block';
+            toggle.classList.toggle('active', !isVisible);
+        }
+
+        function selectDice(dice) {
+            selectedDice = dice;
+            document.querySelectorAll('.dice-btn').forEach(btn => {
+                btn.classList.remove('selected');
+                if (btn.dataset.dice === dice) {
+                    btn.classList.add('selected');
+                }
+            });
+            
+            // Update custom inputs
+            if (dice.includes('d')) {
+                const parts = dice.split('d');
+                document.getElementById('diceCount').value = parts[0] || 1;
+                document.getElementById('diceType').value = 'd' + parts[1];
+            }
+        }
+
+        function adjustModifier(delta) {
+            const input = document.getElementById('modifier');
+            input.value = parseInt(input.value) + delta;
+        }
+
+        function setAdvantage(mode) {
+            advantageMode = mode;
+            document.querySelectorAll('.adv-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(mode === 'normal' ? 'normalBtn' : mode === 'advantage' ? 'advBtn' : 'disadvBtn').classList.add('active');
+        }
+
+        function rollDice() {
+            const count = parseInt(document.getElementById('diceCount').value) || 1;
+            const type = document.getElementById('diceType').value;
+            const modifier = parseInt(document.getElementById('modifier').value) || 0;
+            const sides = parseInt(type.replace('d', ''));
+            
+            let rolls = [];
+            let notation = '';
+            
+            if (advantageMode === 'advantage' && type === 'd20') {
+                const roll1 = Math.floor(Math.random() * 20) + 1;
+                const roll2 = Math.floor(Math.random() * 20) + 1;
+                const best = Math.max(roll1, roll2);
+                rolls = [best];
+                notation = `1d20 Advantage [${roll1}, ${roll2}] → ${best}`;
+            } else if (advantageMode === 'disadvantage' && type === 'd20') {
+                const roll1 = Math.floor(Math.random() * 20) + 1;
+                const roll2 = Math.floor(Math.random() * 20) + 1;
+                const worst = Math.min(roll1, roll2);
+                rolls = [worst];
+                notation = `1d20 Disadvantage [${roll1}, ${roll2}] → ${worst}`;
+            } else {
+                for (let i = 0; i < count; i++) {
+                    rolls.push(Math.floor(Math.random() * sides) + 1);
+                }
+                notation = `${count}${type}`;
+            }
+            
+            const sum = rolls.reduce((a, b) => a + b, 0);
+            const total = sum + modifier;
+            const breakdown = count > 1 ? `[${rolls.join(', ')}]${modifier >= 0 ? '+' : ''}${modifier}` : '';
+            
+            // Check for nat 20 or nat 1 (only for d20)
+            let cssClass = '';
+            if (type === 'd20' && count === 1) {
+                if (rolls[0] === 20) cssClass = 'roll-natural-20';
+                if (rolls[0] === 1) cssClass = 'roll-natural-1';
+            }
+            
+            addRollResult(notation, total, breakdown, cssClass, modifier);
+            
+            // Send to server if in campaign
+            const campaignId = '@Model.CampaignId';
+            if (campaignId) {
+                fetch('/api/dice/roll', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        campaignId: campaignId,
+                        notation: notation,
+                        result: total,
+                        modifier: modifier
+                    })
+                });
+            }
+        }
+
+        function addRollResult(notation, total, breakdown, cssClass, modifier) {
+            const history = document.getElementById('rollHistory');
+            const div = document.createElement('div');
+            div.className = `roll-result ${cssClass}`;
+            div.innerHTML = `
+                <div class="roll-notation">${notation}</div>
+                <div class="roll-value">${total}${modifier !== 0 ? ` (${modifier >= 0 ? '+' : ''}${modifier})` : ''}</div>
+                ${breakdown ? `<div class="roll-breakdown">${breakdown}</div>` : ''}
+            `;
+            history.insertBefore(div, history.firstChild);
+            
+            // Keep only last 10 rolls
+            while (history.children.length > 10) {
+                history.removeChild(history.lastChild);
+            }
+        }
+
+        // Keyboard shortcut
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'r' && !e.ctrlKey && !e.metaKey && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+                rollDice();
+            }
+        });
+    </script>
+}

@@ -1,10 +1,10 @@
-﻿using ChroniclerData.Models;
-using Fluent.Infrastructure.FluentModel;
+﻿using ChroniclerWeb.Models;
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-
+namespace ChroniclerWeb.Models
+{
     public enum ForumCategory
     {
         General,
@@ -64,4 +64,4 @@ using System.ComponentModel.DataAnnotations.Schema;
         [ForeignKey(nameof(AuthorId))]
         public ApplicationUser Author { get; set; } = null!;
     }
-
+}

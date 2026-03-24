@@ -1,5 +1,6 @@
 ﻿using ChroniclerWeb.Data;
-using Fluent.Infrastructure.FluentModel;
+using ChroniclerWeb.Models;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace ChroniclerData.Services.Campaign
 {
-    public class CampaignService
+    public class CampaignService : ICampaignService
     {
         private readonly ApplicationDbContext _context;
 

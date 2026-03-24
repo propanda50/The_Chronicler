@@ -1,0 +1,434 @@
+@page "/campaign/{campaignId}/turntracker"
+@model TheChronicler.Web.Pages.Campaigns.TurnTrackerModel
+@{
+    ViewData["Title"] = "Turn Tracker";
+}
+
+<style>
+    .turn-tracker-container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .tracker-header {
+        background: linear-gradient(135deg, var(--chr-gold), #c9a227);
+        padding: 16px 24px;
+        border-radius: 12px 12px 0 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .tracker-header h4 {
+        margin: 0;
+        color: #1a1a2e;
+        font-weight: bold;
+    }
+
+    .tracker-body {
+        background: linear-gradient(145deg, #1a1a2e 0%, #16213e 100%);
+        border: 1px solid var(--chr-border);
+        border-top: none;
+        border-radius: 0 0 12px 12px;
+        padding: 20px;
+    }
+
+    .turn-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .turn-item {
+        display: flex;
+        align-items: center;
+        padding: 12px 16px;
+        background: #16213e;
+        border: 2px solid #3a3a5a;
+        border-radius: 10px;
+        margin-bottom: 8px;
+        transition: all 0.3s;
+        cursor: grab;
+    }
+
+    .turn-item.active {
+        border-color: var(--chr-gold);
+        background: linear-gradient(135deg, rgba(201, 162, 39, 0.2), rgba(201, 162, 39, 0.05));
+        box-shadow: 0 0 20px rgba(201, 162, 39, 0.3);
+        transform: scale(1.02);
+    }
+
+    .turn-item.active .turn-name {
+        color: var(--chr-gold);
+        font-weight: bold;
+    }
+
+    .turn-item.dragging {
+        opacity: 0.5;
+        transform: scale(0.98);
+    }
+
+    .turn-number {
+        width: 32px;
+        height: 32px;
+        background: var(--chr-border);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        color: var(--chr-text);
+        margin-right: 12px;
+        flex-shrink: 0;
+    }
+
+    .turn-item.active .turn-number {
+        background: var(--chr-gold);
+        color: #1a1a2e;
+    }
+
+    .turn-portrait {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin-right: 12px;
+        border: 2px solid var(--chr-border);
+        flex-shrink: 0;
+    }
+
+    .turn-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .turn-name {
+        font-size: 1.1rem;
+        color: var(--chr-text);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .turn-details {
+        font-size: 0.85rem;
+        color: var(--chr-text-muted);
+    }
+
+    .turn-initiative {
+        font-size: 1.3rem;
+        font-weight: bold;
+        color: var(--chr-gold);
+        min-width: 50px;
+        text-align: center;
+    }
+
+    .turn-hp-bar {
+        width: 100px;
+        height: 8px;
+        background: #3a3a5a;
+        border-radius: 4px;
+        overflow: hidden;
+        margin-left: 12px;
+    }
+
+    .turn-hp-fill {
+        height: 100%;
+        transition: width 0.3s;
+        border-radius: 4px;
+    }
+
+    .hp-full { background: var(--chr-green); }
+    .hp-mid { background: #d29922; }
+    .hp-low { background: var(--chr-red); }
+
+    .turn-actions {
+        display: flex;
+        gap: 4px;
+        margin-left: 12px;
+    }
+
+    .turn-actions .btn {
+        padding: 4px 8px;
+        font-size: 0.8rem;
+    }
+
+    .tracker-controls {
+        display: flex;
+        gap: 12px;
+        margin-top: 20px;
+    }
+
+    .tracker-controls .btn {
+        flex: 1;
+    }
+
+    .add-combatant-modal .form-control,
+    .add-combatant-modal .form-select {
+        background: #1a1a2e;
+        border-color: #3a3a5a;
+        color: white;
+    }
+
+    .current-turn-indicator {
+        font-size: 0.9rem;
+        color: var(--chr-text-muted);
+    }
+
+    .round-counter {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: var(--chr-gold);
+    }
+</style>
+
+<div class="turn-tracker-container">
+    <div class="tracker-header">
+        <div class="d-flex align-items-center gap-3">
+            <h4><i class="bi bi-trophy me-2"></i>Turn Tracker</h4>
+            <span class="current-turn-indicator">Round</span>
+            <span class="round-counter" id="roundCounter">1</span>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-sm btn-dark" onclick="resetTracker()">
+                <i class="bi bi-arrow-counterclockwise"></i> Reset
+            </button>
+            <button class="btn btn-sm btn-dark" data-bs-toggle="modal" data-bs-target="#addCombatantModal">
+                <i class="bi bi-plus-lg"></i> Add
+            </button>
+        </div>
+    </div>
+
+    <div class="tracker-body">
+        <ul class="turn-list" id="turnList">
+            @foreach (var combatant in Model.Combatants.OrderByDescending(c => c.Initiative))
+            {
+                <li class="turn-item @combatant.IsActive" 
+                    draggable="true" 
+                    data-id="@combatant.Id"
+                    ondragstart="dragStart(event)" 
+                    ondragover="dragOver(event)" 
+                    ondrop="drop(event)">
+                    <span class="turn-number">@combatant.Order</span>
+                    @if (!string.IsNullOrEmpty(combatant.PortraitUrl))
+                    {
+                        <img src="@combatant.PortraitUrl" class="turn-portrait" alt="@combatant.Name" />
+                    }
+                    else
+                    {
+                        <div class="turn-portrait d-flex align-items-center justify-content-center" style="background: var(--chr-border);">
+                            <i class="bi bi-person-fill"></i>
+                        </div>
+                    }
+                    <div class="turn-info">
+                        <div class="turn-name">@combatant.Name</div>
+                        <div class="turn-details">@combatant.Type • @combatant.Class</div>
+                    </div>
+                    <div class="turn-initiative">@combatant.Initiative</div>
+                    <div class="turn-hp-bar">
+                        <div class="turn-hp-fill @combatant.HpClass" style="width: @combatant.HpPercent%"></div>
+                    </div>
+                    <div class="turn-actions">
+                        <button class="btn btn-sm btn-outline-success" onclick="updateHp(@combatant.Id, 1)" title="Heal">+</button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="updateHp(@combatant.Id, -1)" title="Damage">-</button>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="removeCombatant(@combatant.Id)" title="Remove">×</button>
+                    </div>
+                </li>
+            }
+        </ul>
+
+        <div class="tracker-controls">
+            <button class="btn btn-outline-secondary" onclick="previousTurn()">
+                <i class="bi bi-chevron-left me-1"></i>Previous
+            </button>
+            <button class="btn btn-chronicle" onclick="nextTurn()">
+                Next<i class="bi bi-chevron-right ms-1"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+@* Add Combatant Modal *@
+<div class="modal fade add-combatant-modal" id="addCombatantModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Combatant</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" asp-page-handler="AddCombatant">
+                <div class="modal-body">
+                    <input type="hidden" name="CampaignId" value="@Model.CampaignId" />
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Name</label>
+                        <input type="text" name="Name" class="form-control" required placeholder="Goblin #1" />
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Initiative</label>
+                            <input type="number" name="Initiative" class="form-control" value="10" required />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Type</label>
+                            <select name="Type" class="form-select">
+                                <option value="Player">Player</option>
+                                <option value="Enemy">Enemy</option>
+                                <option value="Ally">Ally</option>
+                                <option value="Neutral">Neutral</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Current HP</label>
+                            <input type="number" name="CurrentHp" class="form-control" value="10" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Max HP</label>
+                            <input type="number" name="MaxHp" class="form-control" value="10" />
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Or select from Characters</label>
+                        <select name="CharacterId" class="form-select" onchange="selectCharacter(this)">
+                            <option value="">-- Select Character --</option>
+                            @foreach (var character in Model.AvailableCharacters)
+                            {
+                                <option value="@character.Id" data-portrait="@character.PortraitUrl" data-class="@character.Class">
+                                    @character.Name (@character.Type)
+                                </option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-chronicle">Add to Combat</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let currentTurnIndex = 0;
+        let round = 1;
+
+        function nextTurn() {
+            const items = document.querySelectorAll('.turn-item');
+            if (items.length === 0) return;
+            
+            items[currentTurnIndex].classList.remove('active');
+            currentTurnIndex = (currentTurnIndex + 1) % items.length;
+            
+            if (currentTurnIndex === 0) {
+                round++;
+                document.getElementById('roundCounter').textContent = round;
+            }
+            
+            items[currentTurnIndex].classList.add('active');
+            saveState();
+        }
+
+        function previousTurn() {
+            const items = document.querySelectorAll('.turn-item');
+            if (items.length === 0) return;
+            
+            items[currentTurnIndex].classList.remove('active');
+            currentTurnIndex = (currentTurnIndex - 1 + items.length) % items.length;
+            
+            if (currentTurnIndex === items.length - 1 && round > 1) {
+                round--;
+                document.getElementById('roundCounter').textContent = round;
+            }
+            
+            items[currentTurnIndex].classList.add('active');
+            saveState();
+        }
+
+        function resetTracker() {
+            round = 1;
+            currentTurnIndex = 0;
+            document.getElementById('roundCounter').textContent = round;
+            
+            const items = document.querySelectorAll('.turn-item');
+            items.forEach((item, index) => {
+                item.classList.remove('active');
+                if (index === 0) item.classList.add('active');
+            });
+            
+            saveState();
+        }
+
+        function updateHp(id, delta) {
+            // Update via API
+            fetch('/api/turntracker/hp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ combatantId: id, delta: delta })
+            }).then(() => location.reload());
+        }
+
+        function removeCombatant(id) {
+            if (confirm('Remove this combatant?')) {
+                fetch(`/api/turntracker/remove/${id}`, { method: 'POST' })
+                    .then(() => location.reload());
+            }
+        }
+
+        // Drag and drop
+        let draggedItem = null;
+
+        function dragStart(e) {
+            draggedItem = e.target;
+            e.target.classList.add('dragging');
+        }
+
+        function dragOver(e) {
+            e.preventDefault();
+        }
+
+        function drop(e) {
+            e.preventDefault();
+            if (draggedItem && e.target.classList.contains('turn-item')) {
+                const list = document.getElementById('turnList');
+                const items = [...list.querySelectorAll('.turn-item')];
+                const fromIndex = items.indexOf(draggedItem);
+                const toIndex = items.indexOf(e.target.closest('.turn-item'));
+                
+                if (fromIndex < toIndex) {
+                    e.target.closest('.turn-item').after(draggedItem);
+                } else {
+                    e.target.closest('.turn-item').before(draggedItem);
+                }
+                
+                updateOrder();
+            }
+            draggedItem?.classList.remove('dragging');
+        }
+
+        function updateOrder() {
+            document.querySelectorAll('.turn-item').forEach((item, index) => {
+                item.querySelector('.turn-number').textContent = index + 1;
+            });
+            saveState();
+        }
+
+        function saveState() {
+            // Save round and current turn to session/API
+        }
+
+        // Initialize first turn
+        document.addEventListener('DOMContentLoaded', () => {
+            const items = document.querySelectorAll('.turn-item');
+            if (items.length > 0) {
+                items[0].classList.add('active');
+            }
+        });
+    </script>
+}

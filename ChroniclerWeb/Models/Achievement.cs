@@ -1,60 +1,63 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
 
-public enum AchievementType
+namespace ChroniclerWeb.Models
 {
-    FirstTime,      // One-time achievements
-    Progress,       // Progress-based (e.g., 10, 50, 100)
-    Milestone,      // Major milestones
-    Secret          // Hidden achievements
-}
 
-public class Achievement
-{
-    public int Id { get; set; }
-
-    [Required, MaxLength(100)]
-    public string Name { get; set; } = "";
-
-    [MaxLength(500)]
-    public string Description { get; set; } = "";
-
-    [MaxLength(50)]
-    public string Icon { get; set; } = "🏆";
-
-    public AchievementType Type { get; set; } = AchievementType.FirstTime;
-
-    public int XP { get; set; } = 50;
-
-    [MaxLength(100)]
-    public string Category { get; set; } = "General";
-
-    public int? RequiredCount { get; set; } // For progress achievements
-
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-}
-
-public class PlayerAchievement
-{
-    public int Id { get; set; }
-
-    [Required]
-    public string PlayerId { get; set; } = "";
-
-    public int AchievementId { get; set; }
-    public Achievement Achievement { get; set; } = null!;
-
-    public int CurrentProgress { get; set; } = 0;
-    public bool IsCompleted { get; set; }
-    public DateTime? CompletedAt { get; set; }
-    public DateTime FirstProgressAt { get; set; } = DateTime.UtcNow;
-}
-
-// Predefined achievements
-public static class AchievementList
-{
-    public static readonly (string Name, string Desc, string Icon, string Category, int XP, int? Required)[] All =
+    public enum AchievementType
     {
+        FirstTime,      // One-time achievements
+        Progress,       // Progress-based (e.g., 10, 50, 100)
+        Milestone,      // Major milestones
+        Secret          // Hidden achievements
+    }
+
+    public class Achievement
+    {
+        public int Id { get; set; }
+
+        [Required, MaxLength(100)]
+        public string Name { get; set; } = "";
+
+        [MaxLength(500)]
+        public string Description { get; set; } = "";
+
+        [MaxLength(50)]
+        public string Icon { get; set; } = "🏆";
+
+        public AchievementType Type { get; set; } = AchievementType.FirstTime;
+
+        public int XP { get; set; } = 50;
+
+        [MaxLength(100)]
+        public string Category { get; set; } = "General";
+
+        public int? RequiredCount { get; set; } // For progress achievements
+
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    }
+
+    public class PlayerAchievement
+    {
+        public int Id { get; set; }
+
+        [Required]
+        public string PlayerId { get; set; } = "";
+
+        public int AchievementId { get; set; }
+        public Achievement Achievement { get; set; } = null!;
+
+        public int CurrentProgress { get; set; } = 0;
+        public bool IsCompleted { get; set; }
+        public DateTime? CompletedAt { get; set; }
+        public DateTime FirstProgressAt { get; set; } = DateTime.UtcNow;
+    }
+
+    // Predefined achievements
+    public static class AchievementList
+    {
+        public static readonly (string Name, string Desc, string Icon, string Category, int XP, int? Required)[] All =
+        {
             // First Steps
             ("First Steps", "Create your first character", "🎯", "Getting Started", 50, null),
             ("Campaign Starter", "Create your first campaign", "📚", "Getting Started", 100, null),
@@ -87,4 +90,5 @@ public static class AchievementList
             ("Lucky Seven", "Roll a natural 7 three times in a row", "🍀", "Special", 200, null),
             ("Nat 20!", "Roll a natural 20", "✨", "Special", 75, null)
         };
+    }
 }

@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ChroniclerData.Models
+namespace ChroniclerWeb.Models
 {
     public class SessionCharacter
     {

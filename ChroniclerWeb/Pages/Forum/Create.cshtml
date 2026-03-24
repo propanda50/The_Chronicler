@@ -1,0 +1,342 @@
+@page
+@model TheChronicler.Web.Pages.Forum.CreateModel
+@{
+    ViewData["Title"] = "New Forum Post";
+}
+
+<div class="page-header">
+    <h2><i class="bi bi-chat-square-plus me-2"></i>New Forum Post</h2>
+    <small class="text-muted">
+        <a asp-page="/Forum/Index" asp-route-campaignId="@Model.CampaignId" class="entity-link text-info">Back to Forum</a>
+    </small>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body p-4">
+                <form method="post" enctype="multipart/form-data" id="postForm">
+                    <input type="hidden" asp-for="CampaignId" />
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="Post.Title" class="form-label">Title</label>
+                        <input asp-for="Post.Title" class="form-control" placeholder="What's on your mind?" />
+                        <span asp-validation-for="Post.Title" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Category</label>
+                        <select asp-for="Post.Category" class="form-select">
+                            <option value="0">General</option>
+                            <option value="1">Looking for Group</option>
+                            <option value="2">Recruitment</option>
+                            <option value="3">Tips & Help</option>
+                            <option value="4">Discussion</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Attachments</label>
+                        <div class="file-upload-area" id="fileDropZone">
+                            <i class="bi bi-cloud-arrow-up" style="font-size: 2rem; color: var(--chr-text-muted);"></i>
+                            <p class="mt-2 mb-1">Drag & drop files here, or click to browse</p>
+                            <small class="text-muted">Supports: images, audio (.mp3, .wav), text (.txt, .md, .pdf)</small>
+                            <input type="file" class="form-control d-none" id="fileInput" name="Files" multiple accept="image/*,audio/*,.txt,.md,.pdf" />
+                        </div>
+                        <div id="fileList" class="mt-2"></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Post.Content" class="form-label">Content</label>
+                        <div class="input-group">
+                            <textarea asp-for="Post.Content" class="form-control" rows="8" id="postContent" placeholder="Share your thoughts..."></textarea>
+                            <button type="button" class="btn btn-outline-secondary" onclick="toggleVoiceInput()" title="Voice Input" style="border-radius: 0;">
+                                <i class="bi bi-mic" id="voiceIcon"></i>
+                            </button>
+                        </div>
+                        <span asp-validation-for="Post.Content" class="text-danger"></span>
+                        <div id="voiceStatus" class="text-muted small mt-1" style="display: none;">
+                            <i class="bi bi-record-circle text-danger"></i> Listening...
+                        </div>
+                    </div>
+
+                    <!-- Transcript Section -->
+                    <div class="mb-3" id="transcriptSection" style="display: none;">
+                        <label class="form-label"><i class="bi bi-text-left me-1"></i>Transcript</label>
+                        <div class="transcript-preview bg-chr-surface p-3 rounded" id="transcriptPreview" style="border: 1px solid var(--chr-border);">
+                            <span class="text-muted">Your transcript will appear here...</span>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-secondary mt-2" onclick="clearTranscript()">
+                            <i class="bi bi-trash me-1"></i>Clear Transcript
+                        </button>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a asp-page="/Forum/Index" asp-route-campaignId="@Model.CampaignId" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-1"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-chronicle">
+                            <i class="bi bi-check-lg me-1"></i>Create Post
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .file-upload-area {
+        border: 2px dashed var(--chr-border);
+        border-radius: 12px;
+        padding: 30px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: var(--chr-bg-surface);
+    }
+
+    .file-upload-area:hover {
+        border-color: var(--chr-gold);
+        background: rgba(212, 168, 67, 0.05);
+    }
+
+    .file-upload-area.dragover {
+        border-color: var(--chr-gold);
+        background: rgba(212, 168, 67, 0.1);
+    }
+
+    .file-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px;
+        background: var(--chr-bg-surface);
+        border: 1px solid var(--chr-border);
+        border-radius: 8px;
+        margin-bottom: 8px;
+    }
+
+    .file-item i {
+        font-size: 1.5rem;
+        color: var(--chr-gold);
+    }
+
+    .file-item .file-name {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .file-item .remove-file {
+        cursor: pointer;
+        color: var(--chr-text-muted);
+    }
+
+    .file-item .remove-file:hover {
+        color: #ef4444;
+    }
+</style>
+
+@section Scripts {
+    <script>
+        let recognition;
+        let isListening = false;
+        let transcriptText = '';
+        let selectedFiles = [];
+
+        // File upload handling
+        const fileDropZone = document.getElementById('fileDropZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileList = document.getElementById('fileList');
+
+        fileDropZone.addEventListener('click', () => fileInput.click());
+
+        fileDropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            fileDropZone.classList.add('dragover');
+        });
+
+        fileDropZone.addEventListener('dragleave', () => {
+            fileDropZone.classList.remove('dragover');
+        });
+
+        fileDropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileDropZone.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+
+        function handleFiles(files) {
+            for (let file of files) {
+                if (!selectedFiles.some(f => f.name === file.name)) {
+                    selectedFiles.push(file);
+                    displayFile(file, selectedFiles.length - 1);
+                }
+            }
+        }
+
+        function displayFile(file, index) {
+            const fileItem = document.createElement('div');
+            fileItem.className = 'file-item';
+            fileItem.innerHTML = `
+                <i class="bi ${getFileIcon(file.type)}"></i>
+                <span class="file-name">${file.name}</span>
+                <small class="text-muted">${formatFileSize(file.size)}</small>
+                <i class="bi bi-x-circle-fill remove-file" onclick="removeFile(${index})"></i>
+            `;
+            fileList.appendChild(fileItem);
+
+            // If it's an audio file, offer transcription
+            if (file.type.startsWith('audio/')) {
+                transcribeAudio(file);
+            }
+        }
+
+        function getFileIcon(type) {
+            if (type.startsWith('image/')) return 'bi-image';
+            if (type.startsWith('audio/')) return 'bi-music-note';
+            if (type.includes('pdf')) return 'bi-file-pdf';
+            return 'bi-file-text';
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / 1048576).toFixed(1) + ' MB';
+        }
+
+        function removeFile(index) {
+            selectedFiles.splice(index, 1);
+            renderFileList();
+        }
+
+        function renderFileList() {
+            fileList.innerHTML = '';
+            selectedFiles.forEach((file, index) => {
+                displayFile(file, index);
+            });
+        }
+
+        async function transcribeAudio(file) {
+            const formData = new FormData();
+            formData.append('audioFile', file);
+
+            try {
+                const response = await fetch('/Forum/TranscribeAudio', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.transcript) {
+                        addTranscript(data.transcript);
+                    }
+                }
+            } catch (error) {
+                console.log('Audio transcription not available');
+            }
+        }
+
+        function addTranscript(text) {
+            transcriptText += (transcriptText ? '\n\n' : '') + text;
+            document.getElementById('transcriptSection').style.display = 'block';
+            document.getElementById('transcriptPreview').innerHTML = `<pre style="white-space: pre-wrap; margin: 0;">${escapeHtml(transcriptText)}</pre>`;
+            
+            // Append to content
+            const content = document.getElementById('postContent');
+            content.value = (content.value ? content.value + '\n\n' : '') + '[Transcript]\n' + text;
+        }
+
+        function clearTranscript() {
+            transcriptText = '';
+            document.getElementById('transcriptSection').style.display = 'none';
+            document.getElementById('transcriptPreview').innerHTML = '<span class="text-muted">Your transcript will appear here...</span>';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Voice input handling
+        function toggleVoiceInput() {
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                alert('Voice input is not supported in your browser. Please use Chrome or Edge.');
+                return;
+            }
+
+            if (isListening) {
+                stopListening();
+            } else {
+                startListening();
+            }
+        }
+
+        function startListening() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+
+            recognition.onstart = () => {
+                isListening = true;
+                document.getElementById('voiceIcon').classList.add('text-danger');
+                document.getElementById('voiceStatus').style.display = 'block';
+            };
+
+            recognition.onresult = (event) => {
+                let interimTranscript = '';
+                let finalTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript;
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+
+                if (finalTranscript) {
+                    const content = document.getElementById('postContent');
+                    content.value += (content.value ? ' ' : '') + finalTranscript;
+                }
+
+                if (interimTranscript) {
+                    document.getElementById('voiceStatus').textContent = 'Listening: ' + interimTranscript;
+                }
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                stopListening();
+            };
+
+            recognition.onend = () => {
+                stopListening();
+            };
+
+            recognition.start();
+        }
+
+        function stopListening() {
+            if (recognition) {
+                recognition.stop();
+            }
+            isListening = false;
+            document.getElementById('voiceIcon').classList.remove('text-danger');
+            document.getElementById('voiceStatus').style.display = 'none';
+            document.getElementById('voiceStatus').innerHTML = '<i class="bi bi-record-circle text-danger"></i> Listening...';
+        }
+    </script>
+}

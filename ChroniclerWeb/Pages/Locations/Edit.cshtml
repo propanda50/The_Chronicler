@@ -1,0 +1,55 @@
+@page "{id:int}"
+@model TheChronicler.Web.Pages.Locations.EditModel
+@{
+    ViewData["Title"] = "Edit Location";
+}
+
+<div class="page-header">
+    <h2><i class="bi bi-pencil me-2"></i>Edit Location</h2>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body p-4">
+                <form method="post">
+                    <input type="hidden" asp-for="Location.Id" />
+                    <input type="hidden" asp-for="Location.CampaignId" />
+                    <input type="hidden" asp-for="Location.CreatedAt" />
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="Location.Name" class="form-label">Location Name</label>
+                        <input asp-for="Location.Name" class="form-control" />
+                        <span asp-validation-for="Location.Name" class="text-danger"></span>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Location.Region" class="form-label">Region</label>
+                            <input asp-for="Location.Region" class="form-control" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Location.Type" class="form-label">Type</label>
+                            <input asp-for="Location.Type" class="form-control" />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Location.Description" class="form-label">Description</label>
+                        <textarea asp-for="Location.Description" class="form-control" rows="4"></textarea>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a asp-page="/Locations/Details" asp-route-id="@Model.Location.Id" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-1"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-chronicle">
+                            <i class="bi bi-check-lg me-1"></i>Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

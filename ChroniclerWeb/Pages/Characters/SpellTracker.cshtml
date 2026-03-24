@@ -1,0 +1,396 @@
+@page "/character/{characterId}/spells"
+@model TheChronicler.Web.Pages.Characters.SpellTrackerModel
+@{
+    ViewData["Title"] = "Spell Tracker";
+}
+
+<style>
+    .spell-tracker {
+        display: grid;
+        grid-template-columns: 250px 1fr;
+        gap: 20px;
+    }
+
+    .spell-sidebar {
+        background: var(--chr-bg-card);
+        border: 1px solid var(--chr-border);
+        border-radius: 12px;
+        padding: 16px;
+    }
+
+    .spell-sidebar h6 {
+        color: var(--chr-gold);
+        margin-bottom: 12px;
+    }
+
+    .class-selector {
+        margin-bottom: 16px;
+    }
+
+    .spell-level {
+        margin-bottom: 8px;
+    }
+
+    .spell-level-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 12px;
+        background: #16213e;
+        border-radius: 8px;
+        cursor: pointer;
+    }
+
+    .spell-level-header:hover {
+        background: #1a1a2e;
+    }
+
+    .spell-slots {
+        display: flex;
+        gap: 6px;
+        margin-left: auto;
+    }
+
+    .spell-slot {
+        width: 24px;
+        height: 24px;
+        border: 2px solid #3a3a5a;
+        border-radius: 50%;
+        background: transparent;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .spell-slot.filled {
+        background: var(--chr-gold);
+        border-color: var(--chr-gold);
+        box-shadow: 0 0 8px rgba(201, 162, 39, 0.4);
+    }
+
+    .spell-slot:hover {
+        transform: scale(1.1);
+    }
+
+    .spell-main {
+        background: var(--chr-bg-card);
+        border: 1px solid var(--chr-border);
+        border-radius: 12px;
+        padding: 20px;
+    }
+
+    .spell-search {
+        margin-bottom: 20px;
+    }
+
+    .spell-list {
+        max-height: 500px;
+        overflow-y: auto;
+    }
+
+    .spell-card {
+        background: #16213e;
+        border: 1px solid var(--chr-border);
+        border-radius: 10px;
+        padding: 14px 16px;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+
+    .spell-card:hover {
+        border-color: var(--chr-gold);
+        transform: translateX(4px);
+    }
+
+    .spell-card.prepared {
+        border-left: 4px solid var(--chr-gold);
+    }
+
+    .spell-card.concentration {
+        border-left: 4px solid #bc8cff;
+    }
+
+    .spell-icon {
+        width: 40px;
+        height: 40px;
+        background: linear-gradient(135deg, #8b5cf6, #6366f1);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+    }
+
+    .spell-info {
+        flex: 1;
+    }
+
+    .spell-name {
+        font-weight: 600;
+        color: var(--chr-text);
+    }
+
+    .spell-meta {
+        font-size: 0.85rem;
+        color: var(--chr-text-muted);
+    }
+
+    .spell-actions {
+        display: flex;
+        gap: 8px;
+    }
+
+    .spell-actions .btn {
+        padding: 4px 10px;
+        font-size: 0.8rem;
+    }
+
+    .spell-level-badge {
+        background: var(--chr-gold);
+        color: #1a1a2e;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-weight: bold;
+        font-size: 0.75rem;
+    }
+
+    .spell-details {
+        background: #1a1a2e;
+        border-radius: 8px;
+        padding: 16px;
+        margin-top: 16px;
+        display: none;
+    }
+
+    .spell-details.visible {
+        display: block;
+    }
+
+    .concentration-tracker {
+        background: linear-gradient(135deg, #4a1942, #2d1b4e);
+        border: 1px solid #8b5cf6;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 20px;
+    }
+
+    .concentration-tracker h6 {
+        color: #c4b5fd;
+        margin-bottom: 8px;
+    }
+
+    .tracker-compact {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+    }
+
+    .stat-compact {
+        background: #1a1a2e;
+        border-radius: 8px;
+        padding: 10px;
+        text-align: center;
+    }
+
+    .stat-compact .value {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: var(--chr-gold);
+    }
+
+    .stat-compact .label {
+        font-size: 0.75rem;
+        color: var(--chr-text-muted);
+    }
+</style>
+
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h2><i class="bi bi-magic me-2"></i>Spell Tracker</h2>
+        <small class="text-muted">@Model.Character.Name - Level @Model.CharacterLevel @Model.CharacterClass</small>
+    </div>
+    <div>
+        <button class="btn btn-outline-secondary me-2" onclick="longRest()">
+            <i class="bi bi-moon me-1"></i>Long Rest
+        </button>
+        <button class="btn btn-chronicle" onclick="shortRest()">
+            <i class="bi bi-sun me-1"></i>Short Rest
+        </button>
+    </div>
+</div>
+
+<div class="spell-tracker">
+    @* Spell Slots Sidebar *@
+    <div class="spell-sidebar">
+        <h6><i class="bi bi-lightning me-2"></i>Spell Slots</h6>
+        
+        @for (int level = 1; level <= 9; level++)
+        {
+            var slots = Model.GetSlotsForLevel(level);
+            if (slots > 0)
+            {
+                <div class="spell-level">
+                    <div class="spell-level-header">
+                        <span>Level @level</span>
+                        <div class="spell-slots">
+                            @for (int i = 0; i < slots; i++)
+                            {
+                                <button class="spell-slot filled" 
+                                        id="slot-@level-@i"
+                                        onclick="useSlot(@level, @i)"
+                                        title="Click to use slot"></button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+
+        <hr class="divider-gold my-3" />
+
+        <h6><i class="bi bi-person me-2"></i>Quick Stats</h6>
+        <div class="tracker-compact">
+            <div class="stat-compact">
+                <div class="value" id="spellAttackMod">+@(2 + Model.CharacterLevel)</div>
+                <div class="label">Attack</div>
+            </div>
+            <div class="stat-compact">
+                <div class="value" id="spellSaveDC">@(8 + 2 + Model.CharacterLevel)</div>
+                <div class="label">Save DC</div>
+            </div>
+        </div>
+    </div>
+
+    @* Spell List *@
+    <div class="spell-main">
+        <div class="concentration-tracker">
+            <h6><i class="bi bi-eye me-2"></i>Concentration</h6>
+            <div id="concentrationList" class="text-muted">No active concentration spells</div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-8">
+                <input type="text" class="form-control spell-search" placeholder="Search spells..." id="spellSearch" onkeyup="filterSpells()" />
+            </div>
+            <div class="col-md-4">
+                <select class="form-select" id="levelFilter" onchange="filterSpells()">
+                    <option value="">All Levels</option>
+                    @for (int i = 0; i <= 9; i++)
+                    {
+                        <option value="@i">Level @i</option>
+                    }
+                </select>
+            </div>
+        </div>
+
+        <div class="spell-list" id="spellList">
+            @foreach (var spell in Model.Spells)
+            {
+                <div class="spell-card" data-name="@spell.Name.ToLower()" data-level="@spell.Level" onclick="showSpellDetails(@spell.Id)">
+                    <span class="spell-level-badge">@spell.Level</span>
+                    <div class="spell-info">
+                        <div class="spell-name">@spell.Name</div>
+                        <div class="spell-meta">@spell.School • @string.Join(", ", spell.Components)</div>
+                    </div>
+                    <div class="spell-actions">
+                        @if (spell.Concentration)
+                        {
+                            <span class="badge bg-purple">Conc.</span>
+                        }
+                        <button class="btn btn-sm btn-outline-warning" onclick="event.stopPropagation(); togglePrepared(@spell.Id)" title="Prepare">
+                            <i class="bi bi-bookmark"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); castSpell(@spell.Id, @spell.Level)" title="Cast">
+                            <i class="bi bi-lightning"></i>
+                        </button>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div id="spellDetails" class="spell-details">
+            <h5 id="detailsName"></h5>
+            <p id="detailsDescription"></p>
+            <div class="row">
+                <div class="col-md-6">
+                    <strong>Components:</strong> <span id="detailsComponents"></span>
+                </div>
+                <div class="col-md-6">
+                    <strong>Casting Time:</strong> <span id="detailsCastingTime"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let concentrationSpells = [];
+
+        function useSlot(level, index) {
+            const slot = document.getElementById(`slot-${level}-${index}`);
+            slot.classList.remove('filled');
+        }
+
+        function castSpell(spellId, level) {
+            // Use a spell slot
+            if (level > 0) {
+                const slot = document.querySelector(`#slot-${level}.filled, [id^="slot-${level}-"].filled`);
+                if (slot) {
+                    slot.classList.remove('filled');
+                } else {
+                    alert('No spell slots available at this level!');
+                    return;
+                }
+            }
+
+            // Check for concentration
+            // This would be checked from spell data
+        }
+
+        function togglePrepared(spellId) {
+            const card = event.target.closest('.spell-card');
+            card.classList.toggle('prepared');
+        }
+
+        function showSpellDetails(spellId) {
+            const details = document.getElementById('spellDetails');
+            details.classList.add('visible');
+            // Populate with spell data
+        }
+
+        function filterSpells() {
+            const search = document.getElementById('spellSearch').value.toLowerCase();
+            const level = document.getElementById('levelFilter').value;
+
+            document.querySelectorAll('.spell-card').forEach(card => {
+                const name = card.dataset.name;
+                const spellLevel = card.dataset.level;
+                const matchesSearch = !search || name.includes(search);
+                const matchesLevel = level === '' || spellLevel === level;
+                card.style.display = matchesSearch && matchesLevel ? 'flex' : 'none';
+            });
+        }
+
+        function shortRest() {
+            // Restore warlock slots
+            document.querySelectorAll('.spell-slot').forEach(slot => {
+                if (slot.dataset.pact === 'true') {
+                    slot.classList.add('filled');
+                }
+            });
+        }
+
+        function longRest() {
+            // Restore all slots
+            document.querySelectorAll('.spell-slot').forEach(slot => {
+                slot.classList.add('filled');
+            });
+            concentrationSpells = [];
+            document.getElementById('concentrationList').innerHTML = 'No active concentration spells';
+        }
+    </script>
+}

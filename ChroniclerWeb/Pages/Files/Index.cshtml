@@ -1,0 +1,96 @@
+@page
+@model TheChronicler.Web.Pages.Files.IndexModel
+@{
+    ViewData["Title"] = "Files";
+}
+
+<div class="page-header">
+    <h2><i class="bi bi-folder2-open me-2"></i>Files</h2>
+    <small class="text-muted">@Model.CampaignName</small>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title">Upload New File</h5>
+        <form method="post" enctype="multipart/form-data">
+            <input type="hidden" name="CampaignId" value="@Model.CampaignId" />
+            <div class="row">
+                <div class="col-md-6">
+                    <input type="file" name="File" class="form-control" accept="*/*" />
+                </div>
+                <div class="col-md-3">
+                    <select name="FileType" class="form-select">
+                        <option value="Document">Document</option>
+                        <option value="Image">Image</option>
+                        <option value="Audio">Audio</option>
+                        <option value="Map">Map</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-chronicle w-100">
+                        <i class="bi bi-upload me-1"></i>Upload
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row">
+    @foreach (var file in Model.Files)
+    {
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h6 class="card-title">
+                        @if (file.ContentType.StartsWith("image/"))
+                        {
+                            <i class="bi bi-image me-1"></i>
+                        }
+                        else if (file.ContentType.StartsWith("audio/"))
+                        {
+                            <i class="bi bi-music-note-beamed me-1"></i>
+                        }
+                        else
+                        {
+                            <i class="bi bi-file-earmark me-1"></i>
+                        }
+                        @file.FileName
+                    </h6>
+                    <p class="text-muted small">@file.Type - @(file.FileSize / 1024) KB</p>
+                    
+                    @if (file.ContentType.StartsWith("image/"))
+                    {
+                        <img src="@file.Url" class="img-fluid rounded mb-2" alt="@file.FileName" />
+                    }
+                    else if (file.ContentType.StartsWith("audio/"))
+                    {
+                        <audio controls class="w-100 mb-2">
+                            <source src="@file.Url" type="@file.ContentType" />
+                        </audio>
+                    }
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="@file.Url" download="@file.FileName" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-download"></i>
+                        </a>
+                        <form method="post" asp-page-handler="Delete">
+                            <input type="hidden" name="fileId" value="@file.Id" />
+                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@if (!Model.Files.Any())
+{
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle me-2"></i>No files uploaded yet.
+    </div>
+}

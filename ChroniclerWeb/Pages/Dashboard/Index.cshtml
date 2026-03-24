@@ -1,0 +1,108 @@
+@page
+@model TheChronicler.Web.Pages.Dashboard.IndexModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="page-header d-flex justify-content-between align-items-center">
+    <h2><i class="bi bi-speedometer2 me-2"></i>Dashboard</h2>
+    <a asp-page="/Campaigns/Create" class="btn btn-chronicle">
+        <i class="bi bi-plus-lg me-1"></i>New Campaign
+    </a>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="card stat-card">
+            <div class="stat-number">@Model.TotalCampaigns</div>
+            <div class="stat-label">Campaigns</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card">
+            <div class="stat-number">@Model.TotalSessions</div>
+            <div class="stat-label">Sessions</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card">
+            <div class="stat-number">@Model.TotalCharacters</div>
+            <div class="stat-label">Characters</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card">
+            <div class="stat-number">@Model.TotalLocations</div>
+            <div class="stat-label">Locations</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-map me-2"></i>Your Campaigns</h5>
+            </div>
+            <div class="card-body">
+                @if (Model.Campaigns.Any())
+                {
+                    @foreach (var campaign in Model.Campaigns)
+                    {
+                        <div class="d-flex justify-content-between align-items-center p-3 mb-2" style="background: var(--chr-bg-surface); border-radius: 6px; border: 1px solid var(--chr-border);">
+                            <div>
+                                <a asp-page="/Campaigns/Details" asp-route-id="@campaign.Id" class="entity-link fw-bold">@campaign.Name</a>
+                                <div class="text-muted small mt-1">@campaign.Description?.Truncate(80)</div>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge badge-@campaign.Status.ToString().ToLower()">@campaign.Status</span>
+                                <span class="text-muted small">@campaign.Sessions.Count sessions</span>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="empty-state">
+                        <i class="bi bi-map d-block"></i>
+                        <p>No campaigns yet. Create your first campaign to get started!</p>
+                        <a asp-page="/Campaigns/Create" class="btn btn-chronicle">
+                            <i class="bi bi-plus-lg me-1"></i>Create Campaign
+                        </a>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Recent Sessions</h5>
+            </div>
+            <div class="card-body">
+                @if (Model.RecentSessions.Any())
+                {
+                    @foreach (var session in Model.RecentSessions)
+                    {
+                        <div class="mb-3 pb-3 border-bottom" style="border-color: var(--chr-border) !important;">
+                            <a asp-page="/Sessions/Details" asp-route-id="@session.Id" class="entity-link fw-bold">
+                                @session.Title
+                            </a>
+                            <div class="text-muted small">
+                                <i class="bi bi-calendar me-1"></i>@session.SessionDate.ToString("MMM dd, yyyy")
+                                &mdash; @session.Campaign.Name
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="text-center text-muted py-3">
+                        <i class="bi bi-journal-text d-block" style="font-size: 2rem;"></i>
+                        <small>No sessions recorded yet</small>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

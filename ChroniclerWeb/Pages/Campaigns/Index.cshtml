@@ -1,0 +1,66 @@
+@page
+@model TheChronicler.Web.Pages.Campaigns.IndexModel
+@{
+    ViewData["Title"] = "Campaigns";
+}
+
+<div class="page-header d-flex justify-content-between align-items-center">
+    <h2><i class="bi bi-map me-2"></i>Campaigns</h2>
+    <a asp-page="/Campaigns/Create" class="btn btn-chronicle">
+        <i class="bi bi-plus-lg me-1"></i>New Campaign
+    </a>
+</div>
+
+@if (Model.Campaigns.Any())
+{
+    <div class="row g-4">
+        @foreach (var campaign in Model.Campaigns)
+        {
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h5 class="card-title mb-0">
+                                <a asp-page="/Campaigns/Details" asp-route-id="@campaign.Id" class="entity-link">@campaign.Name</a>
+                            </h5>
+                            <span class="badge badge-@campaign.Status.ToString().ToLower()">@campaign.Status</span>
+                        </div>
+                        @if (!string.IsNullOrEmpty(campaign.GameSystem))
+                        {
+                            <div class="text-muted small mb-2"><i class="bi bi-dice-6 me-1"></i>@campaign.GameSystem</div>
+                        }
+                        <p class="card-text text-muted small">@campaign.Description.Truncate(120)</p>
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <div class="text-muted small">
+                                <i class="bi bi-journal me-1"></i>@campaign.Sessions.Count sessions
+                                <span class="ms-2"><i class="bi bi-people me-1"></i>@campaign.Characters.Count characters</span>
+                            </div>
+                            @if (campaign.OwnerId == Model.CurrentUserId)
+                            {
+                                <span class="badge badge-gm">GM</span>
+                            }
+                            else
+                            {
+                                <span class="badge badge-player">Player</span>
+                            }
+                        </div>
+                    </div>
+                    <div class="card-footer bg-transparent border-top" style="border-color: var(--chr-border) !important;">
+                        <small class="text-muted">Updated @campaign.UpdatedAt.ToString("MMM dd, yyyy")</small>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+else
+{
+    <div class="empty-state">
+        <i class="bi bi-map d-block"></i>
+        <h5>No Campaigns Yet</h5>
+        <p>Create your first campaign and begin chronicling your adventures.</p>
+        <a asp-page="/Campaigns/Create" class="btn btn-chronicle">
+            <i class="bi bi-plus-lg me-1"></i>Create Your First Campaign
+        </a>
+    </div>
+}
