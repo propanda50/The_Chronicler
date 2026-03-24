@@ -1,0 +1,129 @@
+@page
+@model TheChronicler.Web.Pages.Sessions.CreateModel
+@{
+    ViewData["Title"] = "New Session";
+}
+
+<div class="page-header">
+    <h2><i class="bi bi-plus-circle me-2"></i>New Session</h2>
+    <small class="text-muted">
+        <a asp-page="/Campaigns/Details" asp-route-id="@Model.CampaignId" class="entity-link">@Model.CampaignName</a>
+    </small>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body p-4">
+                <form method="post">
+                    <input type="hidden" asp-for="Session.CampaignId" value="@Model.CampaignId" />
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label asp-for="Session.Title" class="form-label">Session Title</label>
+                            <div class="input-group">
+                                <input asp-for="Session.Title" class="form-control" placeholder="The Goblin Ambush" id="SessionTitle" />
+                                <button type="button" class="btn btn-outline-secondary" onclick="generateRandomTitle()">
+                                    <i class="bi bi-shuffle"></i> Random
+                                </button>
+                            </div>
+                            <span asp-validation-for="Session.Title" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label asp-for="Session.SessionNumber" class="form-label">Session #</label>
+                            <input asp-for="Session.SessionNumber" class="form-control" value="@Model.NextSessionNumber" />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Session.SessionDate" class="form-label">Session Date</label>
+                        <input asp-for="Session.SessionDate" type="date" class="form-control" value="@DateTime.Now.ToString("yyyy-MM-dd")" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Session.Summary" class="form-label">Summary</label>
+                        <textarea asp-for="Session.Summary" class="form-control" rows="2" placeholder="Brief summary of the session..."></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Session.Notes" class="form-label">Session Notes</label>
+                        <textarea asp-for="Session.Notes" class="form-control notes-editor" rows="12" placeholder="Detailed session notes... Use markdown-style formatting."></textarea>
+                        <small class="text-muted">Supports basic text formatting. Write detailed notes about what happened during the session.</small>
+                    </div>
+
+                    <!-- Tag Characters -->
+                    @if (Model.AvailableCharacters.Any())
+                    {
+                        <div class="mb-3">
+                            <label class="form-label">Tag Characters</label>
+                            <div class="row g-2">
+                                @foreach (var character in Model.AvailableCharacters)
+                                {
+                                    <div class="col-md-4">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="SelectedCharacterIds" value="@character.Id" id="char_@character.Id" />
+                                            <label class="form-check-label" for="char_@character.Id">
+                                                @character.Name
+                                                <span class="badge badge-@character.Status.ToString().ToLower() ms-1" style="font-size: 0.65rem;">@character.Status</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Tag Locations -->
+                    @if (Model.AvailableLocations.Any())
+                    {
+                        <div class="mb-3">
+                            <label class="form-label">Tag Locations</label>
+                            <div class="row g-2">
+                                @foreach (var location in Model.AvailableLocations)
+                                {
+                                    <div class="col-md-4">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="SelectedLocationIds" value="@location.Id" id="loc_@location.Id" />
+                                            <label class="form-check-label" for="loc_@location.Id">
+                                                @location.Name
+                                            </label>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    <div class="d-flex justify-content-between">
+                        <a asp-page="/Sessions/Index" asp-route-campaignId="@Model.CampaignId" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-1"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-chronicle">
+                            <i class="bi bi-check-lg me-1"></i>Create Session
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function generateRandomTitle() {
+            const actions = ['Ambush', 'Betrayal', 'Discovery', 'Escape', 'Battle', 'Revelation', 'Journey', 'Confrontation', 'Alliance', 'Sacrifice'];
+            const subjects = ['Goblins', 'Dragons', 'Cultists', 'Bandits', 'Undead', 'Demons', 'Mercenaries', 'Nobles', 'Wizards', 'Ghosts'];
+            const places = ['the Dungeon', 'the Forest', 'the Mountains', 'the City', 'the Ruins', 'the Swamp', 'the Desert', 'the Castle'];
+            
+            const templates = [
+                `The ${actions[Math.floor(Math.random() * actions.length)]} of the ${subjects[Math.floor(Math.random() * subjects.length)]}`,
+                `${actions[Math.floor(Math.random() * actions.length)]} in ${places[Math.floor(Math.random() * places.length)]}`,
+                `Into the ${subjects[Math.floor(Math.random() * subjects.length)]}' Lair`,
+                `The ${subjects[Math.floor(Math.random() * subjects.length)]}' ${actions[Math.floor(Math.random() * actions.length)]}`
+            ];
+            
+            document.getElementById('SessionTitle').value = templates[Math.floor(Math.random() * templates.length)];
+        }
+    </script>
+}

@@ -1,0 +1,85 @@
+@page
+@model TheChronicler.Web.Pages.Events.IndexModel
+@{
+    ViewData["Title"] = "Events - " + Model.Campaign.Name;
+}
+
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h2><i class="bi bi-lightning me-2"></i>Events</h2>
+        <small class="text-muted">
+            <a asp-page="/Campaigns/Details" asp-route-id="@Model.Campaign.Id" class="entity-link">@Model.Campaign.Name</a>
+        </small>
+    </div>
+    @if (Model.IsGameMaster)
+    {
+        <a asp-page="/Events/Create" asp-route-campaignId="@Model.Campaign.Id" class="btn btn-chronicle">
+            <i class="bi bi-plus-lg me-1"></i>New Event
+        </a>
+    }
+</div>
+
+@if (Model.Events.Any())
+{
+    <div class="row g-3">
+        @foreach (var evt in Model.Events)
+        {
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body d-flex justify-content-between align-items-start">
+                        <div>
+                            <h5 class="mb-1">
+                                @if (evt.IsKeyEvent)
+                                {
+                                    <span class="badge badge-key-event me-2"><i class="bi bi-star-fill"></i></span>
+                                }
+                                <a asp-page="/Events/Details" asp-route-id="@evt.Id" class="entity-link">@evt.Title</a>
+                            </h5>
+                            <div class="text-muted small mb-2">
+                                <i class="bi bi-calendar me-1"></i>@evt.EventDate.ToString("MMMM dd, yyyy")
+                                @if (evt.Session != null)
+                                {
+                                    <span class="ms-2">
+                                        <i class="bi bi-journal-text me-1"></i>
+                                        <a asp-page="/Sessions/Details" asp-route-id="@evt.SessionId" class="entity-link">
+                                            Session @evt.Session.SessionNumber
+                                        </a>
+                                    </span>
+                                }
+                            </div>
+                            @if (!string.IsNullOrEmpty(evt.Description))
+                            {
+                                <p class="mb-0 text-muted">@evt.Description.Truncate(200)</p>
+                            }
+                        </div>
+                        @if (Model.IsGameMaster)
+                        {
+                            <div class="d-flex gap-1">
+                                <a asp-page="/Events/Edit" asp-route-id="@evt.Id" class="btn btn-outline-chronicle btn-sm">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <a asp-page="/Events/Delete" asp-route-id="@evt.Id" class="btn btn-outline-danger btn-sm">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+else
+{
+    <div class="empty-state">
+        <i class="bi bi-lightning d-block"></i>
+        <h5>No Events Yet</h5>
+        <p>Record significant events that shape your campaign narrative.</p>
+        @if (Model.IsGameMaster)
+        {
+            <a asp-page="/Events/Create" asp-route-campaignId="@Model.Campaign.Id" class="btn btn-chronicle">
+                <i class="bi bi-plus-lg me-1"></i>Add First Event
+            </a>
+        }
+    </div>
+}

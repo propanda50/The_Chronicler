@@ -1,0 +1,349 @@
+@page "{campaignId:int}"
+@model TheChronicler.Web.Pages.CampaignMap.IndexModel
+@{
+    ViewData["Title"] = "Campaign Map";
+}
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style>
+    #map {
+        height: 600px;
+        width: 100%;
+        border-radius: 8px;
+        border: 2px solid var(--chr-gold);
+        position: relative;
+    }
+    .location-popup {
+        min-width: 200px;
+    }
+    .location-popup h5 {
+        margin-bottom: 8px;
+        color: var(--chr-gold);
+    }
+    
+    .fog-controls {
+        position: absolute;
+        top: 10px;
+        right: 60px;
+        z-index: 1000;
+        background: rgba(26, 26, 46, 0.95);
+        border: 1px solid var(--chr-gold);
+        border-radius: 8px;
+        padding: 10px;
+    }
+    
+    .fog-controls label {
+        color: var(--chr-text);
+        font-size: 0.85rem;
+    }
+    
+    .fog-canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 450;
+        pointer-events: none;
+    }
+    
+    .fog-canvas.drawing {
+        pointer-events: auto;
+        cursor: crosshair;
+    }
+    
+    #fogOverlay {
+        background: rgba(0, 0, 0, 0.85);
+    }
+</style>
+
+<div class="page-header">
+    <h2><i class="bi bi-map me-2"></i>Campaign Map</h2>
+    <small class="text-muted">@Model.CampaignName</small>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="row mb-3">
+            <div class="col-md-3">
+                <input type="text" id="locationName" class="form-control" placeholder="Location name" />
+            </div>
+            <div class="col-md-3">
+                <input type="text" id="locationDescription" class="form-control" placeholder="Description" />
+            </div>
+            <div class="col-md-3">
+                <button class="btn btn-chronicle" onclick="addLocationAtCenter()">
+                    <i class="bi bi-plus-circle me-1"></i>Add Location
+                </button>
+            </div>
+            <div class="col-md-3">
+                <button class="btn btn-outline-secondary" onclick="toggleFogMode()" id="fogToggleBtn">
+                    <i class="bi bi-eye-slash me-1"></i>Fog of War
+                </button>
+            </div>
+        </div>
+        
+        @* Fog of War Controls *@
+        <div class="row mb-2" id="fogControls" style="display: none;">
+            <div class="col-md-6">
+                <div class="btn-group w-100">
+                    <button class="btn btn-sm btn-outline-secondary active" onclick="setFogTool('reveal')" id="revealBtn">
+                        <i class="bi bi-eye me-1"></i>Reveal
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="setFogTool('hide')" id="hideBtn">
+                        <i class="bi bi-eye-slash me-1"></i>Hide
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="setFogTool('brush')" id="brushBtn">
+                        <i class="bi bi-brush me-1"></i>Brush
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <input type="range" class="form-range" id="brushSize" min="20" max="200" value="50" />
+            </div>
+            <div class="col-md-3">
+                <button class="btn btn-sm btn-outline-danger" onclick="clearFog()">
+                    <i class="bi bi-trash me-1"></i>Clear All
+                </button>
+                <button class="btn btn-sm btn-chronicle" onclick="saveFog()">
+                    <i class="bi bi-save me-1"></i>Save
+                </button>
+            </div>
+        </div>
+        
+        <p class="text-muted small mb-0">
+            <i class="bi bi-info-circle me-1"></i>Click on the map to select a position, then add a location. Use Fog of War to hide/reveal areas for players.
+        </p>
+    </div>
+</div>
+
+<div id="map"></div>
+
+<input type="hidden" id="campaignId" value="@Model.CampaignId" />
+
+@section Scripts {
+    <script>
+        const map = L.map('map').setView([0, 0], 3);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        let selectedLatLng = null;
+
+        map.on('click', function(e) {
+            selectedLatLng = e.latlng;
+            // Show temporary marker
+            if (window.tempMarker) {
+                map.removeLayer(window.tempMarker);
+            }
+            window.tempMarker = L.marker(e.latlng, {
+                icon: L.divIcon({ className: 'temp-marker', html: '<i class="bi bi-pin-map-fill text-warning" style="font-size: 24px;"></i>' })
+            }).addTo(map);
+        });
+
+        // Load existing locations
+        const locations = @Json.Serialize(Model.Locations);
+        
+        locations.forEach(loc => {
+            if (loc.mapX && loc.mapY) {
+                const marker = L.marker([loc.mapY, loc.mapX]).addTo(map);
+                marker.bindPopup(`
+                    <div class="location-popup">
+                        <h5>${loc.name}</h5>
+                        <p>${loc.description || ''}</p>
+                        <p class="text-muted small">${loc.region || ''} ${loc.type ? '- ' + loc.type : ''}</p>
+                        <a href="/Locations/Details?id=${loc.id}" class="btn btn-sm btn-outline-primary">View Details</a>
+                    </div>
+                `);
+            }
+        });
+
+        function addLocationAtCenter() {
+            const center = map.getCenter();
+            selectedLatLng = center;
+            addLocation();
+        }
+
+        async function addLocation() {
+            if (!selectedLatLng) {
+                alert('Please click on the map to select a position first.');
+                return;
+            }
+
+            const name = document.getElementById('locationName').value;
+            const description = document.getElementById('locationDescription').value;
+            const campaignId = document.getElementById('campaignId').value;
+
+            if (!name) {
+                alert('Please enter a location name.');
+                return;
+            }
+
+            const response = await fetch('/CampaignMap?handler=AddLocation', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                },
+                body: JSON.stringify({
+                    campaignId: parseInt(campaignId),
+                    name: name,
+                    description: description,
+                    mapX: selectedLatLng.lng,
+                    mapY: selectedLatLng.lat
+                })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                const marker = L.marker([selectedLatLng.lat, selectedLatLng.lng]).addTo(map);
+                marker.bindPopup(`
+                    <div class="location-popup">
+                        <h5>${name}</h5>
+                        <p>${description || ''}</p>
+                        <a href="/Locations/Details?id=${data.id}" class="btn btn-sm btn-outline-primary">View Details</a>
+                    </div>
+                `);
+                
+                document.getElementById('locationName').value = '';
+                document.getElementById('locationDescription').value = '';
+                if (window.tempMarker) {
+                    map.removeLayer(window.tempMarker);
+                    window.tempMarker = null;
+                }
+                selectedLatLng = null;
+            }
+        }
+
+        // ========== FOG OF WAR ==========
+        let fogMode = false;
+        let fogTool = 'reveal';
+        let fogCanvas = null;
+        let fogCtx = null;
+        let isDrawing = false;
+
+        function toggleFogMode() {
+            fogMode = !fogMode;
+            const fogControls = document.getElementById('fogControls');
+            const fogToggleBtn = document.getElementById('fogToggleBtn');
+            
+            if (fogMode) {
+                fogControls.style.display = 'flex';
+                fogToggleBtn.classList.add('active');
+                fogToggleBtn.classList.remove('btn-outline-secondary');
+                fogToggleBtn.classList.add('btn-warning');
+                initFogCanvas();
+            } else {
+                fogControls.style.display = 'none';
+                fogToggleBtn.classList.remove('active', 'btn-warning');
+                fogToggleBtn.classList.add('btn-outline-secondary');
+                if (fogCanvas) {
+                    map.removeLayer(fogCanvas);
+                }
+            }
+        }
+
+        function initFogCanvas() {
+            if (fogCanvas) {
+                map.removeLayer(fogCanvas);
+            }
+
+            // Create fog overlay
+            const bounds = map.getBounds();
+            fogCanvas = L.imageOverlay('', bounds, {
+                interactive: true,
+                zIndex: 450
+            }).addTo(map);
+
+            // Create canvas for drawing
+            const canvas = document.createElement('canvas');
+            canvas.id = 'fogCanvasElement';
+            canvas.width = map.getSize().x;
+            canvas.height = map.getSize().y;
+            canvas.className = 'fog-canvas drawing';
+            canvas.style.position = 'absolute';
+            canvas.style.top = '0';
+            canvas.style.left = '0';
+            canvas.style.zIndex = '450';
+            
+            map.getContainer().appendChild(canvas);
+            fogCtx = canvas.getContext('2d');
+            
+            // Fill with fog
+            fogCtx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+            fogCtx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Drawing events
+            canvas.addEventListener('mousedown', startFogDraw);
+            canvas.addEventListener('mousemove', fogDraw);
+            canvas.addEventListener('mouseup', stopFogDraw);
+            canvas.addEventListener('mouseleave', stopFogDraw);
+        }
+
+        function setFogTool(tool) {
+            fogTool = tool;
+            document.querySelectorAll('#fogControls .btn-group button').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(tool + 'Btn')?.classList.add('active');
+        }
+
+        function startFogDraw(e) {
+            isDrawing = true;
+            fogDraw(e);
+        }
+
+        function fogDraw(e) {
+            if (!isDrawing || !fogCtx) return;
+            
+            const rect = e.target.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const size = parseInt(document.getElementById('brushSize').value);
+            
+            fogCtx.beginPath();
+            fogCtx.arc(x, y, size / 2, 0, Math.PI * 2);
+            
+            if (fogTool === 'reveal') {
+                fogCtx.globalCompositeOperation = 'destination-out';
+                fogCtx.fillStyle = 'rgba(255, 255, 255, 1)';
+            } else if (fogTool === 'hide') {
+                fogCtx.globalCompositeOperation = 'source-over';
+                fogCtx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+            } else {
+                fogCtx.globalCompositeOperation = 'destination-out';
+                fogCtx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+            }
+            
+            fogCtx.fill();
+        }
+
+        function stopFogDraw() {
+            isDrawing = false;
+        }
+
+        function clearFog() {
+            if (fogCtx) {
+                const canvas = document.getElementById('fogCanvasElement');
+                fogCtx.globalCompositeOperation = 'source-over';
+                fogCtx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+                fogCtx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+        }
+
+        function saveFog() {
+            const canvas = document.getElementById('fogCanvasElement');
+            if (canvas) {
+                const dataUrl = canvas.toDataURL();
+                // Save to server
+                fetch('/api/fog/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        campaignId: @Model.CampaignId,
+                        fogData: dataUrl
+                    })
+                }).then(() => alert('Fog of War saved!'));
+            }
+        }
+    </script>
+}

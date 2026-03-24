@@ -1,6 +1,9 @@
-﻿using ChroniclerData.Models;
+﻿
 using System;
 using System.ComponentModel.DataAnnotations.Schema;
+namespace ChroniclerWeb.Models
+{
+
 
 public class SessionLocation
 {
@@ -15,4 +18,5 @@ public class SessionLocation
 
     [ForeignKey(nameof(LocationId))]
     public Location Location { get; set; } = null!;
+}
 }

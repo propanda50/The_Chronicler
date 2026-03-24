@@ -1,6 +1,8 @@
-﻿using ChroniclerData.Models;
-using Microsoft.AspNet.Identity.EntityFramework;
+﻿using ChroniclerWeb.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+
+
 
 namespace ChroniclerWeb.Data
 {

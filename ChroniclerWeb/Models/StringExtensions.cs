@@ -1,10 +1,12 @@
 ﻿using System;
-
-public static class StringExtensions
+namespace ChroniclerWeb.Models
 {
-    public static string Truncate(this string? value, int maxLength)
+    public static class StringExtensions
     {
-        if (string.IsNullOrEmpty(value)) return string.Empty;
-        return value.Length <= maxLength ? value : value[..maxLength] + "...";
+        public static string Truncate(this string? value, int maxLength)
+        {
+            if (string.IsNullOrEmpty(value)) return string.Empty;
+            return value.Length <= maxLength ? value : value[..maxLength] + "...";
+        }
     }
 }

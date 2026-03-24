@@ -1,0 +1,284 @@
+@page "/campaign/{campaignId}/minis"
+@model TheChronicler.Web.Pages.Campaigns.MiniaturesModel
+@{
+    ViewData["Title"] = "3D Miniatures";
+}
+
+<style>
+    .mini-viewer-container {
+        position: relative;
+        height: calc(100vh - 200px);
+        border-radius: 12px;
+        overflow: hidden;
+        border: 2px solid var(--chr-gold);
+    }
+
+    #mini3dContainer {
+        width: 100%;
+        height: 100%;
+        background: #1a1a2e;
+    }
+
+    .mini-sidebar {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        width: 250px;
+        background: rgba(26, 26, 46, 0.95);
+        border: 1px solid var(--chr-border);
+        border-radius: 12px;
+        padding: 16px;
+        max-height: calc(100% - 20px);
+        overflow-y: auto;
+    }
+
+    .mini-sidebar h6 {
+        color: var(--chr-gold);
+        margin-bottom: 12px;
+    }
+
+    .mini-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .mini-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 12px;
+        background: #16213e;
+        border: 1px solid var(--chr-border);
+        border-radius: 8px;
+        margin-bottom: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .mini-item:hover, .mini-item.selected {
+        border-color: var(--chr-gold);
+        background: rgba(201, 162, 39, 0.1);
+    }
+
+    .mini-color {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        border: 2px solid rgba(255,255,255,0.3);
+    }
+
+    .mini-controls {
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+        display: flex;
+        gap: 8px;
+    }
+
+    .mini-controls .btn {
+        background: rgba(26, 26, 46, 0.95);
+        border: 1px solid var(--chr-border);
+        color: var(--chr-text);
+    }
+
+    .mini-controls .btn:hover {
+        border-color: var(--chr-gold);
+        color: var(--chr-gold);
+    }
+
+    .add-mini-form {
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid var(--chr-border);
+    }
+
+    .color-picker {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+
+    .color-option {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        cursor: pointer;
+        border: 2px solid transparent;
+        transition: all 0.2s;
+    }
+
+    .color-option:hover, .color-option.selected {
+        border-color: white;
+        transform: scale(1.1);
+    }
+</style>
+
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h2><i class="bi bi-box me-2"></i>3D Miniatures</h2>
+        <small class="text-muted">@Model.CampaignName</small>
+    </div>
+    <div>
+        <button class="btn btn-chronicle" onclick="openAddMiniModal()">
+            <i class="bi bi-plus-circle me-1"></i>Add Miniature
+        </button>
+    </div>
+</div>
+
+<div class="mini-viewer-container">
+    <div id="mini3dContainer"></div>
+
+    <div class="mini-sidebar">
+        <h6><i class="bi bi-collection me-2"></i>Miniatures</h6>
+        <ul class="mini-list" id="miniList">
+            @foreach (var mini in Model.Miniatures)
+            {
+                <li class="mini-item" data-id="@mini.Id" onclick="selectMini('@mini.Id')">
+                    <div class="mini-color" style="background: @mini.Color;"></div>
+                    <span>@mini.Name</span>
+                </li>
+            }
+        </ul>
+
+        <div class="add-mini-form">
+            <input type="text" id="newMiniName" class="form-control mb-2" placeholder="Character name" />
+            <div class="color-picker mb-2">
+                <div class="color-option selected" style="background: #d4a843;" data-color="#d4a843"></div>
+                <div class="color-option" style="background: #c94040;" data-color="#c94040"></div>
+                <div class="color-option" style="background: #3fb950;" data-color="#3fb950"></div>
+                <div class="color-option" style="background: #58a6ff;" data-color="#58a6ff"></div>
+                <div class="color-option" style="background: #bc8cff;" data-color="#bc8cff"></div>
+                <div class="color-option" style="background: #f0f0f0;" data-color="#f0f0f0"></div>
+            </div>
+            <button class="btn btn-chronicle btn-sm w-100" onclick="addMiniFromForm()">
+                <i class="bi bi-plus me-1"></i>Add
+            </button>
+        </div>
+    </div>
+
+    <div class="mini-controls">
+        <button class="btn" onclick="viewer.resetCamera()" title="Reset Camera">
+            <i class="bi bi-house"></i>
+        </button>
+        <button class="btn" onclick="screenshot()" title="Screenshot">
+            <i class="bi bi-camera"></i>
+        </button>
+        <button class="btn" onclick="toggleGrid()" title="Toggle Grid">
+            <i class="bi bi-grid"></i>
+        </button>
+        <button class="btn" onclick="clearAll()" title="Clear All">
+            <i class="bi bi-trash"></i>
+        </button>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="~/js/mini3d.js"></script>
+    <script>
+        let viewer;
+        let selectedColor = '#d4a843';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            viewer = new Miniature3DViewer('mini3dContainer');
+            viewer.initialize();
+
+            // Load existing miniatures
+            @foreach (var mini in Model.Miniatures)
+            {
+                <text>
+                viewer.addMiniature('@mini.Id', {
+                    name: '@mini.Name',
+                    color: 0x@mini.Color.TrimStart('#'),
+                    position: { x: @mini.PositionX, y: 0, z: @mini.PositionZ }
+                });
+                </text>
+            }
+
+            // Setup color picker
+            document.querySelectorAll('.color-option').forEach(el => {
+                el.addEventListener('click', () => {
+                    document.querySelectorAll('.color-option').forEach(c => c.classList.remove('selected'));
+                    el.classList.add('selected');
+                    selectedColor = el.dataset.color;
+                });
+            });
+        });
+
+        function addMiniFromForm() {
+            const name = document.getElementById('newMiniName').value.trim();
+            if (!name) {
+                alert('Please enter a name');
+                return;
+            }
+
+            const id = 'mini_' + Date.now();
+            const color = parseInt(selectedColor.replace('#', '0x'));
+
+            // Random position in a circle
+            const angle = Math.random() * Math.PI * 2;
+            const radius = Math.random() * 5;
+            const x = Math.cos(angle) * radius;
+            const z = Math.sin(angle) * radius;
+
+            viewer.addMiniature(id, { name, color, position: { x, y: 0, z } });
+
+            // Add to list
+            const list = document.getElementById('miniList');
+            const li = document.createElement('li');
+            li.className = 'mini-item';
+            li.dataset.id = id;
+            li.onclick = () => selectMini(id);
+            li.innerHTML = `
+                <div class="mini-color" style="background: ${selectedColor};"></div>
+                <span>${name}</span>
+            `;
+            list.appendChild(li);
+
+            document.getElementById('newMiniName').value = '';
+
+            // Save to server
+            saveMiniature(id, name, selectedColor, x, z);
+        }
+
+        function selectMini(id) {
+            document.querySelectorAll('.mini-item').forEach(el => el.classList.remove('selected'));
+            document.querySelector(`.mini-item[data-id="${id}"]`)?.classList.add('selected');
+            viewer.selectMiniature(id);
+        }
+
+        function screenshot() {
+            const dataUrl = viewer.takeScreenshot();
+            const link = document.createElement('a');
+            link.download = 'minis_' + Date.now() + '.png';
+            link.href = dataUrl;
+            link.click();
+        }
+
+        async function saveMiniature(id, name, color, x, z) {
+            await fetch('/Campaigns/Miniatures?handler=Save', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                },
+                body: JSON.stringify({ id, name, color, positionX: x, positionZ: z })
+            });
+        }
+
+        function toggleGrid() {
+            // Toggle grid visibility
+        }
+
+        function clearAll() {
+            if (confirm('Remove all miniatures?')) {
+                viewer.miniatures.forEach((mini, id) => {
+                    viewer.removeMiniature(id);
+                });
+                document.getElementById('miniList').innerHTML = '';
+            }
+        }
+    </script>
+}

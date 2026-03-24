@@ -1,0 +1,560 @@
+@page "/campaign/{campaignId}/encounters"
+@model TheChronicler.Web.Pages.Encounters.IndexModel
+@{
+    ViewData["Title"] = "Encounter Builder";
+}
+
+<style>
+    .encounter-builder {
+        display: grid;
+        grid-template-columns: 300px 1fr 300px;
+        gap: 20px;
+        min-height: 600px;
+    }
+
+    .monster-palette {
+        background: var(--chr-bg-card);
+        border: 1px solid var(--chr-border);
+        border-radius: 12px;
+        padding: 16px;
+    }
+
+    .monster-palette h6 {
+        color: var(--chr-gold);
+        margin-bottom: 12px;
+    }
+
+    .monster-search {
+        margin-bottom: 12px;
+    }
+
+    .monster-list {
+        max-height: 500px;
+        overflow-y: auto;
+    }
+
+    .monster-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px;
+        background: var(--chr-bg-surface);
+        border: 1px solid var(--chr-border);
+        border-radius: 8px;
+        margin-bottom: 8px;
+        cursor: grab;
+        transition: all 0.2s;
+    }
+
+    .monster-item:hover {
+        border-color: var(--chr-gold);
+        transform: translateX(4px);
+    }
+
+    .monster-item.dragging {
+        opacity: 0.5;
+    }
+
+    .monster-cr {
+        background: var(--chr-gold);
+        color: #1a1a2e;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: bold;
+    }
+
+    .monster-name {
+        flex: 1;
+        font-weight: 500;
+    }
+
+    .encounter-area {
+        background: var(--chr-bg-card);
+        border: 1px solid var(--chr-border);
+        border-radius: 12px;
+        padding: 20px;
+    }
+
+    .encounter-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .encounter-header h6 {
+        color: var(--chr-gold);
+        margin: 0;
+    }
+
+    .drop-zone {
+        min-height: 400px;
+        border: 2px dashed var(--chr-border);
+        border-radius: 12px;
+        padding: 20px;
+        transition: all 0.2s;
+    }
+
+    .drop-zone.drag-over {
+        border-color: var(--chr-gold);
+        background: rgba(201, 162, 39, 0.05);
+    }
+
+    .drop-zone-placeholder {
+        text-align: center;
+        color: var(--chr-text-muted);
+        padding: 40px;
+    }
+
+    .encounter-monster {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        background: #16213e;
+        border: 1px solid var(--chr-border);
+        border-radius: 10px;
+        margin-bottom: 10px;
+        animation: slideIn 0.3s ease;
+    }
+
+    .encounter-monster .count {
+        width: 40px;
+        text-align: center;
+        font-weight: bold;
+        font-size: 1.2rem;
+        color: var(--chr-gold);
+    }
+
+    .encounter-monster .info {
+        flex: 1;
+    }
+
+    .encounter-monster .name {
+        font-weight: 600;
+        color: var(--chr-text);
+    }
+
+    .encounter-monster .stats {
+        font-size: 0.85rem;
+        color: var(--chr-text-muted);
+    }
+
+    .encounter-stats {
+        background: var(--chr-bg-card);
+        border: 1px solid var(--chr-border);
+        border-radius: 12px;
+        padding: 16px;
+    }
+
+    .stat-box {
+        background: var(--chr-bg-surface);
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 12px;
+        text-align: center;
+    }
+
+    .stat-box .value {
+        font-size: 1.8rem;
+        font-weight: bold;
+        color: var(--chr-gold);
+    }
+
+    .stat-box .label {
+        font-size: 0.85rem;
+        color: var(--chr-text-muted);
+    }
+
+    .difficulty-badge {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-weight: bold;
+        font-size: 0.9rem;
+    }
+
+    .difficulty-trivial { background: #6c757d; color: white; }
+    .difficulty-easy { background: #3fb950; color: #1a1a2e; }
+    .difficulty-medium { background: #d29922; color: #1a1a2e; }
+    .difficulty-hard { background: #f97316; color: white; }
+    .difficulty-deadly { background: #c94040; color: white; }
+
+    @@keyframes slideIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
+
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h2><i class="bi bi-swords me-2"></i>Encounter Builder</h2>
+        <small class="text-muted">@Model.CampaignName</small>
+    </div>
+    <div>
+        <button class="btn btn-outline-secondary me-2" onclick="clearEncounter()">
+            <i class="bi bi-trash me-1"></i>Clear
+        </button>
+        <button class="btn btn-chronicle" onclick="saveEncounter()">
+            <i class="bi bi-save me-1"></i>Save Encounter
+        </button>
+    </div>
+</div>
+
+<div class="encounter-builder">
+    @* Monster Palette *@
+    <div class="monster-palette">
+        <h6><i class="bi bi-dragon me-2"></i>Monsters</h6>
+        <input type="text" class="form-control monster-search" placeholder="Search monsters..." id="monsterSearch" onkeyup="filterMonsters()" />
+        
+        <div class="mb-2">
+            <select class="form-select form-select-sm" id="crFilter" onchange="filterMonsters()">
+                <option value="">All CR</option>
+                <option value="0">CR 0</option>
+                <option value="0.25">CR 1/4</option>
+                <option value="0.5">CR 1/2</option>
+                <option value="1">CR 1</option>
+                <option value="2">CR 2</option>
+                <option value="3">CR 3</option>
+                <option value="5">CR 5</option>
+                <option value="10">CR 10+</option>
+            </select>
+        </div>
+        
+        <div class="monster-list" id="monsterList">
+            @foreach (var monster in Model.Monsters)
+            {
+                <div class="monster-item" draggable="true" 
+                     data-name="@monster.Name.ToLower()" 
+                     data-cr="@monster.ChallengeRating"
+                     data-hp="@monster.HitPoints"
+                     data-ac="@monster.ArmorClass"
+                     data-damage="@monster.AverageDamage"
+                     ondragstart="dragStart(event, @Json.Serialize(monster))">
+                    <span class="monster-cr">CR @monster.ChallengeRating</span>
+                    <span class="monster-name">@monster.Name</span>
+                    <i class="bi bi-plus-circle text-muted"></i>
+                </div>
+            }
+        </div>
+    </div>
+
+    @* Encounter Area *@
+    <div class="encounter-area">
+        <div class="encounter-header">
+            <h6><i class="bi bi-lightning me-2"></i>Encounter</h6>
+            <div>
+                <label class="me-2">Party Level:</label>
+                <input type="number" id="partyLevel" class="form-control form-control-sm d-inline-block" style="width: 60px;" value="1" onchange="calculateDifficulty()" />
+                <label class="ms-3 me-2">Party Size:</label>
+                <input type="number" id="partySize" class="form-control form-control-sm d-inline-block" style="width: 60px;" value="4" onchange="calculateDifficulty()" />
+            </div>
+        </div>
+        
+        <div class="drop-zone" id="dropZone" ondrop="drop(event)" ondragover="dragOver(event)" ondragleave="dragLeave(event)">
+            <div class="drop-zone-placeholder" id="placeholder">
+                <i class="bi bi-plus-circle" style="font-size: 3rem;"></i>
+                <p class="mt-3">Drag monsters here to build your encounter</p>
+            </div>
+            <div id="encounterMonsters"></div>
+        </div>
+    </div>
+
+    @* Stats Panel *@
+    <div class="encounter-stats">
+        <h6 class="mb-3" style="color: var(--chr-gold);"><i class="bi bi-graph-up me-2"></i>Statistics</h6>
+        
+        <div class="stat-box">
+            <div class="value" id="totalHP">0</div>
+            <div class="label">Total Enemy HP</div>
+        </div>
+        
+        <div class="stat-box">
+            <div class="value" id="totalCR">0</div>
+            <div class="label">Total CR</div>
+        </div>
+        
+        <div class="stat-box">
+            <div class="value" id="avgAC">0</div>
+            <div class="label">Avg AC</div>
+        </div>
+        
+        <div class="stat-box">
+            <div class="value" id="totalDPS">0</div>
+            <div class="label">Est. Round DPS</div>
+        </div>
+        
+        <hr class="divider-gold" />
+        
+        <div class="text-center">
+            <div class="mb-2">Difficulty</div>
+            <span class="difficulty-badge difficulty-trivial" id="difficultyBadge">Easy</span>
+        </div>
+        
+        <div class="mt-3">
+            <div class="d-flex justify-content-between mb-1">
+                <small>XP Thresholds:</small>
+            </div>
+            <div class="d-flex justify-content-between">
+                <small class="text-muted">Easy: <span id="xpEasy">0</span></small>
+                <small class="text-muted">Medium: <span id="xpMedium">0</span></small>
+            </div>
+            <div class="d-flex justify-content-between">
+                <small class="text-muted">Hard: <span id="xpHard">0</span></small>
+                <small class="text-muted">Deadly: <span id="xpDeadly">0</span></small>
+            </div>
+        </div>
+        
+        <div class="mt-3 p-2" style="background: var(--chr-bg-surface); border-radius: 8px;">
+            <div class="d-flex justify-content-between">
+                <small>Encounter XP:</small>
+                <strong style="color: var(--chr-gold);" id="encounterXP">0</strong>
+            </div>
+            <div class="d-flex justify-content-between mt-1">
+                <small>Adjusted XP:</small>
+                <strong style="color: var(--chr-gold);" id="adjustedXP">0</strong>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let encounterMonsters = [];
+        let draggedMonster = null;
+
+        // Monster data
+        const monsters = @Json.Serialize(Model.Monsters);
+
+        function dragStart(e, monster) {
+            draggedMonster = monster;
+            e.target.classList.add('dragging');
+        }
+
+        function dragOver(e) {
+            e.preventDefault();
+            document.getElementById('dropZone').classList.add('drag-over');
+        }
+
+        function dragLeave(e) {
+            document.getElementById('dropZone').classList.remove('drag-over');
+        }
+
+        function drop(e) {
+            e.preventDefault();
+            document.getElementById('dropZone').classList.remove('drag-over');
+            
+            if (draggedMonster) {
+                addToEncounter(draggedMonster);
+                draggedMonster = null;
+            }
+            
+            document.querySelectorAll('.monster-item').forEach(el => el.classList.remove('dragging'));
+        }
+
+        function addToEncounter(monster) {
+            const existing = encounterMonsters.find(m => m.name === monster.name);
+            if (existing) {
+                existing.count++;
+            } else {
+                encounterMonsters.push({ ...monster, count: 1 });
+            }
+            renderEncounter();
+            calculateDifficulty();
+        }
+
+        function removeFromEncounter(index) {
+            encounterMonsters.splice(index, 1);
+            renderEncounter();
+            calculateDifficulty();
+        }
+
+        function updateCount(index, delta) {
+            encounterMonsters[index].count = Math.max(1, encounterMonsters[index].count + delta);
+            renderEncounter();
+            calculateDifficulty();
+        }
+
+        function renderEncounter() {
+            const container = document.getElementById('encounterMonsters');
+            const placeholder = document.getElementById('placeholder');
+            
+            if (encounterMonsters.length === 0) {
+                placeholder.style.display = 'block';
+                container.innerHTML = '';
+                return;
+            }
+            
+            placeholder.style.display = 'none';
+            
+            container.innerHTML = encounterMonsters.map((m, i) => `
+                <div class="encounter-monster">
+                    <button class="btn btn-sm btn-outline-secondary" onclick="updateCount(${i}, -1)">-</button>
+                    <span class="count">${m.count}</span>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="updateCount(${i}, 1)">+</button>
+                    <div class="info">
+                        <div class="name">${m.name}</div>
+                        <div class="stats">AC ${m.armorClass} • HP ${m.hitPoints} • CR ${m.challengeRating}</div>
+                    </div>
+                    <button class="btn btn-sm btn-outline-danger" onclick="removeFromEncounter(${i})">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function calculateDifficulty() {
+            const partyLevel = parseInt(document.getElementById('partyLevel').value) || 1;
+            const partySize = parseInt(document.getElementById('partySize').value) || 4;
+            
+            // Calculate total stats
+            let totalHP = 0;
+            let totalCR = 0;
+            let totalAC = 0;
+            let totalDPS = 0;
+            let monsterCount = 0;
+            
+            encounterMonsters.forEach(m => {
+                totalHP += m.hitPoints * m.count;
+                totalCR += m.challengeRating * m.count;
+                totalAC += m.armorClass * m.count;
+                totalDPS += (m.averageDamage || 0) * m.count;
+                monsterCount += m.count;
+            });
+            
+            document.getElementById('totalHP').textContent = totalHP;
+            document.getElementById('totalCR').textContent = totalCR.toFixed(1);
+            document.getElementById('avgAC').textContent = monsterCount > 0 ? Math.round(totalAC / monsterCount) : 0;
+            document.getElementById('totalDPS').textContent = totalDPS;
+            
+            // Calculate XP thresholds based on party level
+            const thresholds = getXPThresholds(partyLevel, partySize);
+            document.getElementById('xpEasy').textContent = thresholds.easy;
+            document.getElementById('xpMedium').textContent = thresholds.medium;
+            document.getElementById('xpHard').textContent = thresholds.hard;
+            document.getElementById('xpDeadly').textContent = thresholds.deadly;
+            
+            // Calculate encounter XP
+            const encounterXP = calculateEncounterXP();
+            document.getElementById('encounterXP').textContent = encounterXP;
+            
+            // Adjust for party size and monster count
+            const adjustedXP = adjustXPForMultiplier(encounterXP, monsterCount, partySize);
+            document.getElementById('adjustedXP').textContent = adjustedXP;
+            
+            // Determine difficulty
+            let difficulty, difficultyClass;
+            if (adjustedXP >= thresholds.deadly) {
+                difficulty = 'Deadly';
+                difficultyClass = 'difficulty-deadly';
+            } else if (adjustedXP >= thresholds.hard) {
+                difficulty = 'Hard';
+                difficultyClass = 'difficulty-hard';
+            } else if (adjustedXP >= thresholds.medium) {
+                difficulty = 'Medium';
+                difficultyClass = 'difficulty-medium';
+            } else if (adjustedXP >= thresholds.easy) {
+                difficulty = 'Easy';
+                difficultyClass = 'difficulty-easy';
+            } else {
+                difficulty = 'Trivial';
+                difficultyClass = 'difficulty-trivial';
+            }
+            
+            const badge = document.getElementById('difficultyBadge');
+            badge.textContent = difficulty;
+            badge.className = 'difficulty-badge ' + difficultyClass;
+        }
+
+        function getXPThresholds(level, partySize) {
+            // Base XP thresholds per character (from DMG)
+            const baseThresholds = {
+                1: { easy: 10, medium: 20, hard: 30, deadly: 40 },
+                2: { easy: 20, medium: 40, hard: 60, deadly: 80 },
+                3: { easy: 40, medium: 80, hard: 120, deadly: 160 },
+                4: { easy: 50, medium: 100, hard: 150, deadly: 200 },
+                5: { easy: 100, medium: 200, hard: 300, deadly: 400 }
+            };
+            
+            const base = baseThresholds[Math.min(level, 5)] || baseThresholds[5];
+            return {
+                easy: base.easy * partySize,
+                medium: base.medium * partySize,
+                hard: base.hard * partySize,
+                deadly: base.deadly * partySize
+            };
+        }
+
+        function calculateEncounterXP() {
+            let total = 0;
+            encounterMonsters.forEach(m => {
+                total += getXPCR(m.challengeRating) * m.count;
+            });
+            return total;
+        }
+
+        function getXPCR(cr) {
+            const xpTable = {
+                0: 10, 0.25: 50, 0.5: 100, 1: 200, 2: 450, 3: 700,
+                4: 1100, 5: 1800, 6: 2300, 7: 2900, 8: 3600, 9: 4500,
+                10: 5900, 11: 7200, 12: 8400, 13: 10000, 14: 11500, 15: 13000
+            };
+            return xpTable[cr] || cr * 1000;
+        }
+
+        function adjustXPForMultiplier(baseXP, monsterCount, partySize) {
+            let multiplier = 1;
+            if (monsterCount >= 15) multiplier = 4;
+            else if (monsterCount >= 11) multiplier = 3;
+            else if (monsterCount >= 7) multiplier = 2.5;
+            else if (monsterCount >= 3) multiplier = 2;
+            else if (monsterCount === 2) multiplier = 1.5;
+            
+            // Adjust for party size
+            if (partySize < 3) multiplier *= 1.5;
+            else if (partySize > 5) multiplier *= 0.8;
+            
+            return Math.round(baseXP * multiplier);
+        }
+
+        function filterMonsters() {
+            const search = document.getElementById('monsterSearch').value.toLowerCase();
+            const crFilter = document.getElementById('crFilter').value;
+            
+            document.querySelectorAll('.monster-item').forEach(el => {
+                const name = el.dataset.name;
+                const cr = el.dataset.cr;
+                const matchesSearch = !search || name.includes(search);
+                const matchesCR = !crFilter || cr === crFilter;
+                el.style.display = matchesSearch && matchesCR ? 'flex' : 'none';
+            });
+        }
+
+        function clearEncounter() {
+            if (confirm('Clear all monsters from the encounter?')) {
+                encounterMonsters = [];
+                renderEncounter();
+                calculateDifficulty();
+            }
+        }
+
+        function saveEncounter() {
+            const name = prompt('Enter encounter name:', 'New Encounter');
+            if (name) {
+                const data = {
+                    name: name,
+                    monsters: encounterMonsters,
+                    partyLevel: document.getElementById('partyLevel').value,
+                    partySize: document.getElementById('partySize').value
+                };
+                console.log('Saving encounter:', data);
+                // TODO: Save to server
+                alert('Encounter saved!');
+            }
+        }
+
+        // Initialize
+        calculateDifficulty();
+    </script>
+}

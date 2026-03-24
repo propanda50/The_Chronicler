@@ -1,0 +1,450 @@
+@page "/campaign/{campaignId}/gm"
+@model TheChronicler.Web.Pages.AIGM.IndexModel
+@{
+    ViewData["Title"] = "AI Game Master";
+}
+
+<style>
+    .gm-container {
+        height: calc(100vh - 200px);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .gm-header {
+        background: linear-gradient(135deg, #4a1942, #2d1b4e);
+        border: 1px solid #8b5cf6;
+        border-radius: 12px 12px 0 0;
+        padding: 16px 24px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .gm-avatar {
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(135deg, #8b5cf6, #6366f1);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
+    }
+
+    .gm-info h4 {
+        margin: 0;
+        color: #c4b5fd;
+    }
+
+    .gm-info p {
+        margin: 0;
+        color: #a78bfa;
+        font-size: 0.9rem;
+    }
+
+    .gm-chat {
+        flex: 1;
+        background: linear-gradient(145deg, #1a1a2e 0%, #16213e 100%);
+        border-left: 1px solid #3a3a5a;
+        border-right: 1px solid #3a3a5a;
+        padding: 20px;
+        overflow-y: auto;
+    }
+
+    .gm-message {
+        margin-bottom: 16px;
+        display: flex;
+        gap: 12px;
+    }
+
+    .gm-message.player {
+        flex-direction: row-reverse;
+    }
+
+    .gm-message-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #3a3a5a;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .gm-message.player .gm-message-avatar {
+        background: var(--chr-gold);
+        color: #1a1a2e;
+    }
+
+    .gm-message.npc .gm-message-avatar {
+        background: #8b5cf6;
+    }
+
+    .gm-message-content {
+        max-width: 70%;
+        padding: 12px 16px;
+        border-radius: 12px;
+        background: #16213e;
+        color: var(--chr-text);
+    }
+
+    .gm-message.player .gm-message-content {
+        background: linear-gradient(135deg, var(--chr-gold), #c9a227);
+        color: #1a1a2e;
+    }
+
+    .gm-message.npc .gm-message-content {
+        background: linear-gradient(135deg, #4a1942, #2d1b4e);
+        border: 1px solid #8b5cf6;
+    }
+
+    .gm-message-name {
+        font-weight: bold;
+        font-size: 0.85rem;
+        margin-bottom: 4px;
+        color: #a78bfa;
+    }
+
+    .gm-message.player .gm-message-name {
+        color: #1a1a2e;
+    }
+
+    .gm-input-area {
+        background: #16213e;
+        border: 1px solid #3a3a5a;
+        border-radius: 0 0 12px 12px;
+        padding: 16px;
+        display: flex;
+        gap: 12px;
+    }
+
+    .gm-input {
+        flex: 1;
+        background: #1a1a2e;
+        border: 1px solid #3a3a5a;
+        border-radius: 8px;
+        padding: 12px 16px;
+        color: white;
+        font-size: 1rem;
+    }
+
+    .gm-input:focus {
+        border-color: #8b5cf6;
+        outline: none;
+    }
+
+    .gm-send {
+        background: linear-gradient(135deg, #8b5cf6, #6366f1);
+        border: none;
+        border-radius: 8px;
+        padding: 12px 24px;
+        color: white;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .gm-send:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+    }
+
+    .quick-actions {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 12px;
+        flex-wrap: wrap;
+    }
+
+    .quick-btn {
+        background: #1a1a2e;
+        border: 1px solid #3a3a5a;
+        border-radius: 20px;
+        padding: 6px 14px;
+        color: var(--chr-text-muted);
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .quick-btn:hover {
+        border-color: #8b5cf6;
+        color: #8b5cf6;
+    }
+
+    .typing-indicator {
+        display: flex;
+        gap: 4px;
+        padding: 8px;
+    }
+
+    .typing-indicator span {
+        width: 8px;
+        height: 8px;
+        background: #8b5cf6;
+        border-radius: 50%;
+        animation: typing 1.4s infinite;
+    }
+
+    .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+    @@keyframes typing {
+        0%, 60%, 100% { transform: translateY(0); }
+        30% { transform: translateY(-8px); }
+    }
+</style>
+
+<div class="gm-container">
+    <div class="gm-header">
+        <div class="gm-avatar">🧙</div>
+        <div class="gm-info">
+            <h4>AI Game Master</h4>
+            <p>Speak naturally - I control the NPCs and world</p>
+        </div>
+        <div class="ms-auto d-flex gap-2">
+            <button class="btn btn-sm btn-outline-light" onclick="selectNPC('innkeeper')">
+                <i class="bi bi-cup-hot me-1"></i>Innkeeper
+            </button>
+            <button class="btn btn-sm btn-outline-light" onclick="selectNPC('merchant')">
+                <i class="bi bi-shop me-1"></i>Merchant
+            </button>
+            <button class="btn btn-sm btn-outline-light" onclick="selectNPC('guard')">
+                <i class="bi bi-shield me-1"></i>Guard
+            </button>
+            <button class="btn btn-sm btn-outline-light" onclick="selectNPC('wizard')">
+                <i class="bi bi-stars me-1"></i>Wizard
+            </button>
+        </div>
+    </div>
+
+    <div class="gm-chat" id="gmChat">
+        <div class="gm-message npc">
+            <div class="gm-message-avatar">🧙</div>
+            <div class="gm-message-content">
+                <div class="gm-message-name">Game Master</div>
+                <div>Welcome, adventurer! I am the Game Master. Speak to any NPC by selecting them above, or ask me to generate quests, encounters, or loot. What would you like to do?</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="gm-input-area">
+        <div class="quick-actions w-100">
+            <button class="quick-btn" onclick="quickAction('generateQuest')">🎲 Quest</button>
+            <button class="quick-btn" onclick="quickAction('randomEncounter')">⚔️ Encounter</button>
+            <button class="quick-btn" onclick="quickAction('generateLoot')">💰 Loot</button>
+            <button class="quick-btn" onclick="quickAction('describe')">🗺️ Describe</button>
+            <button class="quick-btn" onclick="quickAction('weather')">🌤️ Weather</button>
+            <button class="quick-btn" onclick="quickAction('generateImage')">🖼️ Generate Image</button>
+            <button class="quick-btn" onclick="quickAction('portrait')">👤 Character Portrait</button>
+        </div>
+        <input type="text" class="gm-input" id="gmInput" placeholder="Speak to the NPC or ask the GM..." onkeypress="if(event.key==='Enter')sendMessage()" />
+        <button class="gm-send" onclick="sendMessage()">
+            <i class="bi bi-send"></i> Send
+        </button>
+        <button class="gm-send" onclick="speakResponse()" style="background: #10b981;">
+            <i class="bi bi-volume-up"></i>
+        </button>
+    </div>
+</div>
+
+<input type="hidden" id="campaignId" value="@Model.CampaignId" />
+<input type="hidden" id="currentNPC" value="innkeeper" />
+
+@section Scripts {
+    <script>
+        const npcNames = {
+            innkeeper: 'Gareth the Innkeeper',
+            merchant: 'Elara the Merchant',
+            guard: 'Captain Thorne',
+            wizard: 'Archmage Valdris'
+        };
+
+        const npcPersonalities = {
+            innkeeper: 'Friendly, loves gossip, serves ale, knows everyone in town',
+            merchant: 'Shrewd but fair, always looking for rare items, speaks quickly',
+            guard: 'Stern, duty-bound, suspicious of adventurers, follows the law',
+            wizard: 'Eccentric, speaks in riddles, fascinated by magic, absent-minded'
+        };
+
+        let currentNPC = 'innkeeper';
+        let isTyping = false;
+
+        function selectNPC(npc) {
+            currentNPC = npc;
+            document.getElementById('currentNPC').value = npc;
+            
+            addSystemMessage(`You are now speaking with ${npcNames[npc]}`);
+        }
+
+        function quickAction(action) {
+            const messages = {
+                generateQuest: 'I am looking for a quest.',
+                randomEncounter: 'What dangers lie ahead?',
+                generateLoot: 'What treasure might we find?',
+                describe: 'Describe the area around us.',
+                weather: 'What is the weather like?',
+                generateImage: '[IMAGE REQUEST] Generate an image of the current scene',
+                portrait: '[IMAGE REQUEST] Generate a character portrait'
+            };
+            
+            document.getElementById('gmInput').value = messages[action];
+            sendMessage();
+        }
+
+        async function generateImageFromPrompt(prompt) {
+            const encodedPrompt = encodeURIComponent(prompt);
+            const seed = Math.floor(Math.random() * 1000000);
+            return `https://image.pollinations.ai/prompt/${encodedPrompt}?width=512&height=512&seed=${seed}&nologo=true`;
+        }
+
+        function addImageMessage(imageUrl, caption = '') {
+            const chat = document.getElementById('gmChat');
+            chat.innerHTML += `
+                <div class="gm-message npc">
+                    <div class="gm-message-avatar">🎨</div>
+                    <div class="gm-message-content">
+                        <div class="gm-message-name">${npcNames[currentNPC]} - Generated Image</div>
+                        <img src="${imageUrl}" class="img-fluid rounded mt-2" style="max-width: 400px;" alt="Generated Image" onerror="this.src='https://api.dicebear.com/7.x/adventurer/svg?seed=12345'" />
+                        ${caption ? `<p class="mt-2 mb-0 small">${caption}</p>` : ''}
+                    </div>
+                </div>
+            `;
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('gmInput');
+            const message = input.value.trim();
+            if (!message || isTyping) return;
+
+            // Check if message requests an image
+            const isImageRequest = message.includes('[IMAGE REQUEST]') || 
+                                   message.toLowerCase().includes('generate image') ||
+                                   message.toLowerCase().includes('show me') ||
+                                   message.toLowerCase().includes('create image') ||
+                                   message.toLowerCase().includes('draw');
+
+            // Add player message
+            addPlayerMessage(message);
+            input.value = '';
+
+            // Show typing indicator
+            showTyping();
+            isTyping = true;
+
+            try {
+                if (isImageRequest) {
+                    // Generate image directly
+                    hideTyping();
+                    const prompt = message.replace('[IMAGE REQUEST]', '').replace('generate image of', '').trim();
+                    const imagePrompt = prompt || 'A fantasy RPG scene with dramatic lighting';
+                    const imageUrl = await generateImageFromPrompt(imagePrompt);
+                    addImageMessage(imageUrl, prompt);
+                } else {
+                    // Regular text response
+                    const response = await fetch('/AIGM?handler=Chat', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                        },
+                        body: JSON.stringify({
+                            campaignId: parseInt(document.getElementById('campaignId').value),
+                            npcName: npcNames[currentNPC],
+                            npcPersonality: npcPersonalities[currentNPC],
+                            playerMessage: message
+                        })
+                    });
+
+                    const data = await response.json();
+                    hideTyping();
+                    addNPCMessage(data.response);
+                }
+            } catch (error) {
+                hideTyping();
+                addNPCMessage("*The NPC seems distracted and doesn't respond...*");
+            }
+
+            isTyping = false;
+        }
+
+        function addPlayerMessage(text) {
+            const chat = document.getElementById('gmChat');
+            chat.innerHTML += `
+                <div class="gm-message player">
+                    <div class="gm-message-avatar">⚔️</div>
+                    <div class="gm-message-content">
+                        <div class="gm-message-name">You</div>
+                        <div>${escapeHtml(text)}</div>
+                    </div>
+                </div>
+            `;
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function addNPCMessage(text) {
+            const chat = document.getElementById('gmChat');
+            chat.innerHTML += `
+                <div class="gm-message npc">
+                    <div class="gm-message-avatar">🧙</div>
+                    <div class="gm-message-content">
+                        <div class="gm-message-name">${npcNames[currentNPC]}</div>
+                        <div>${text}</div>
+                    </div>
+                </div>
+            `;
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function addSystemMessage(text) {
+            const chat = document.getElementById('gmChat');
+            chat.innerHTML += `
+                <div class="text-center text-muted my-3">
+                    <small>— ${text} —</small>
+                </div>
+            `;
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function showTyping() {
+            const chat = document.getElementById('gmChat');
+            chat.innerHTML += `
+                <div class="gm-message npc" id="typingIndicator">
+                    <div class="gm-message-avatar">🧙</div>
+                    <div class="gm-message-content">
+                        <div class="typing-indicator">
+                            <span></span><span></span><span></span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function hideTyping() {
+            document.getElementById('typingIndicator')?.remove();
+        }
+
+        function speakResponse() {
+            const chat = document.getElementById('gmChat');
+            const lastNPCMessage = chat.querySelectorAll('.gm-message.npc .gm-message-content div:last-child');
+            if (lastNPCMessage.length > 0) {
+                const text = lastNPCMessage[lastNPCMessage.length - 1].textContent;
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = 0.9;
+                utterance.pitch = 0.8;
+                speechSynthesis.speak(utterance);
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+}

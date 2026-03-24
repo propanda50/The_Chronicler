@@ -1,5 +1,4 @@
 ﻿using ChroniclerWeb.Data;
-using Fluent.Infrastructure.FluentModel;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using System;

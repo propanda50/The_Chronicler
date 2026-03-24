@@ -7,7 +7,7 @@ using System.Reflection.PortableExecutable;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ChroniclerData.Models
+namespace ChroniclerWeb.Models
 {
     public class Location
     {

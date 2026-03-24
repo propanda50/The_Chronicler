@@ -1,0 +1,29 @@
+@page "{id:int}"
+@model TheChronicler.Web.Pages.Locations.DeleteModel
+@{
+    ViewData["Title"] = "Delete Location";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card" style="border-color: var(--chr-red);">
+            <div class="card-body p-4 text-center">
+                <i class="bi bi-exclamation-triangle" style="font-size: 3rem; color: var(--chr-red);"></i>
+                <h4 class="mt-3">Delete Location</h4>
+                <p class="text-muted">
+                    Are you sure you want to delete <strong style="color: var(--chr-gold);">@Model.Location.Name</strong>?
+                </p>
+                <div class="d-flex justify-content-center gap-3 mt-4">
+                    <a asp-page="/Locations/Details" asp-route-id="@Model.Location.Id" class="btn btn-outline-secondary">Cancel</a>
+                    <form method="post">
+                        <input type="hidden" asp-for="Location.Id" />
+                        <input type="hidden" name="campaignId" value="@Model.Location.CampaignId" />
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-trash me-1"></i>Delete
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
