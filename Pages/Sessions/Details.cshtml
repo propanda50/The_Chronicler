@@ -1,0 +1,170 @@
+@page "{id:int}"
+@model TheChronicler.Web.Pages.Sessions.DetailsModel
+@{
+    ViewData["Title"] = "Session " + Model.Session.SessionNumber + ": " + Model.Session.Title;
+}
+
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h2><i class="bi bi-journal-text me-2"></i>Session @Model.Session.SessionNumber: @Model.Session.Title</h2>
+        <small class="text-muted">
+            <a asp-page="/Campaigns/Details" asp-route-id="@Model.Session.CampaignId" class="entity-link">@Model.Session.Campaign.Name</a>
+            &mdash; <i class="bi bi-calendar me-1"></i>@Model.Session.SessionDate.ToString("MMMM dd, yyyy")
+        </small>
+    </div>
+    <div class="d-flex gap-2">
+        @if (Model.PreviousSessionId.HasValue)
+        {
+            <a asp-page="/Sessions/Details" asp-route-id="@Model.PreviousSessionId" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i>Previous
+            </a>
+        }
+        @if (Model.NextSessionId.HasValue)
+        {
+            <a asp-page="/Sessions/Details" asp-route-id="@Model.NextSessionId" class="btn btn-outline-secondary btn-sm">
+                Next<i class="bi bi-arrow-right ms-1"></i>
+            </a>
+        }
+        @if (Model.IsGameMaster)
+        {
+            <a asp-page="/Sessions/Edit" asp-route-id="@Model.Session.Id" class="btn btn-outline-chronicle btn-sm">
+                <i class="bi bi-pencil me-1"></i>Edit
+            </a>
+        }
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Session.Summary))
+{
+    <div class="card mb-4">
+        <div class="card-header">
+            <h6 class="mb-0"><i class="bi bi-chat-left-text me-2"></i>Summary</h6>
+        </div>
+        <div class="card-body">
+            <p class="mb-0">@Model.Session.Summary</p>
+        </div>
+    </div>
+}
+
+<div class="row g-4">
+    <div class="col-md-8">
+        <!-- Session Notes -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-pencil-square me-2"></i>Session Notes</h5>
+            </div>
+            <div class="card-body">
+                @if (!string.IsNullOrEmpty(Model.Session.Notes))
+                {
+                    <div class="session-notes" style="white-space: pre-wrap; line-height: 1.7;">@Html.Raw(Model.Session.Notes)</div>
+                }
+                else
+                {
+                    <div class="text-muted text-center py-3">No notes recorded for this session.</div>
+                }
+            </div>
+        </div>
+
+        <!-- Events -->
+        @if (Model.Session.Events.Any())
+        {
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-lightning me-2"></i>Events</h5>
+                </div>
+                <div class="card-body">
+                    @foreach (var evt in Model.Session.Events.OrderBy(e => e.EventDate))
+                    {
+                        <div class="d-flex align-items-start p-2 mb-2" style="background: var(--chr-bg-surface); border-radius: 4px;">
+                            @if (evt.IsKeyEvent)
+                            {
+                                <span class="badge badge-key-event me-2 mt-1"><i class="bi bi-star-fill"></i></span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary me-2 mt-1"><i class="bi bi-dot"></i></span>
+                            }
+                            <div>
+                                <a asp-page="/Events/Details" asp-route-id="@evt.Id" class="entity-link fw-bold">@evt.Title</a>
+                                @if (!string.IsNullOrEmpty(evt.Description))
+                                {
+                                    <div class="text-muted small">@evt.Description.Truncate(150)</div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="col-md-4">
+        <!-- Tagged Characters -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-people me-2"></i>Characters in this Session</h6>
+            </div>
+            <div class="card-body">
+                @if (Model.Session.SessionCharacters.Any())
+                {
+                    @foreach (var sc in Model.Session.SessionCharacters)
+                    {
+                        <div class="d-flex justify-content-between align-items-center p-2 mb-1" style="background: var(--chr-bg-surface); border-radius: 4px;">
+                            <a asp-page="/Characters/Details" asp-route-id="@sc.CharacterId" class="entity-link">@sc.Character.Name</a>
+                            <span class="badge badge-@sc.Character.Status.ToString().ToLower()" style="font-size: 0.7rem;">@sc.Character.Status</span>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="text-center text-muted small py-2">No characters tagged</div>
+                }
+            </div>
+        </div>
+
+        <!-- Tagged Locations -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-geo-alt me-2"></i>Locations Visited</h6>
+            </div>
+            <div class="card-body">
+                @if (Model.Session.SessionLocations.Any())
+                {
+                    @foreach (var sl in Model.Session.SessionLocations)
+                    {
+                        <div class="p-2 mb-1" style="background: var(--chr-bg-surface); border-radius: 4px;">
+                            <a asp-page="/Locations/Details" asp-route-id="@sl.LocationId" class="entity-link">@sl.Location.Name</a>
+                            @if (!string.IsNullOrEmpty(sl.Location.Region))
+                            {
+                                <div class="text-muted small">@sl.Location.Region</div>
+                            }
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="text-center text-muted small py-2">No locations tagged</div>
+                }
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-list-ol me-2"></i>Quick Navigation</h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush" style="background: transparent;">
+                    <a asp-page="/Sessions/Index" asp-route-campaignId="@Model.Session.CampaignId"
+                       class="list-group-item list-group-item-action" style="background: var(--chr-bg-card); color: var(--chr-text); border-color: var(--chr-border);">
+                        <i class="bi bi-list me-2"></i>All Sessions
+                    </a>
+                    <a asp-page="/Timeline/Index" asp-route-campaignId="@Model.Session.CampaignId"
+                       class="list-group-item list-group-item-action" style="background: var(--chr-bg-card); color: var(--chr-text); border-color: var(--chr-border);">
+                        <i class="bi bi-clock-history me-2"></i>Timeline View
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

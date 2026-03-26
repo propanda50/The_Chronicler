@@ -1,0 +1,512 @@
+@page
+@model TheChronicler.Web.Pages.Characters.CreateModel
+@{
+    ViewData["Title"] = "New Character";
+}
+
+<div class="page-header">
+    <h2><i class="bi bi-person-plus me-2"></i>New Character</h2>
+    <small class="text-muted">
+        <a asp-page="/Campaigns/Details" asp-route-id="@Model.CampaignId" class="entity-link text-info">@Model.CampaignName</a>
+    </small>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card">
+            <div class="card-body p-4">
+                <form method="post" enctype="multipart/form-data">
+                    <input type="hidden" name="Character.CampaignId" value="@Model.CampaignId" />
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+<div class="row">
+    <div class="col-md-8 mb-3">
+        <label asp-for="Character.Name" class="form-label">Name</label>
+        <div class="input-group">
+            <input asp-for="Character.Name" class="form-control" placeholder="Gandalf the Grey" id="CharacterName" />
+            <button type="button" class="btn btn-outline-secondary" onclick="generateRandomName()">
+                <i class="bi bi-shuffle"></i> Random
+            </button>
+        </div>
+        <span asp-validation-for="Character.Name" class="text-danger"></span>
+    </div>
+    <div class="col-md-4 mb-3">
+        <label class="form-label">AI Portrait (Mandatory)</label>
+        <div class="text-center">
+            <img id="portraitPreview" src="https://api.dicebear.com/7.x/adventurer/svg?seed=default&backgroundColor=b6e3f4" 
+                 alt="Character Portrait" class="img-fluid rounded" style="width: 200px; height: 200px; object-fit: cover; border: 3px solid var(--chr-primary);">
+            <div class="mt-3">
+                <button type="button" class="btn btn-chronicle btn-sm" onclick="generateRandomPortrait()">
+                    <i class="bi bi-shuffle"></i> Generate New Portrait
+                </button>
+            </div>
+            <input type="hidden" asp-for="Character.PortraitUrl" id="PortraitUrl" />
+            <input type="hidden" asp-for="Character.PortraitData" id="PortraitData" />
+            <input type="hidden" asp-for="Character.PortraitContentType" id="PortraitContentType" />
+        </div>
+        <small class="text-muted d-block mt-2">Every character gets a unique AI-generated portrait</small>
+    </div>
+</div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label asp-for="Character.Type" class="form-label">Type</label>
+                            <select asp-for="Character.Type" class="form-select" id="CharacterType" onchange="toggleNPCRoles()">
+                                <option value="0">Player</option>
+                                <option value="1">NPC</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3" id="npcRoleSection" style="display:none;">
+                            <label class="form-label">NPC Role</label>
+                            <select asp-for="Character.NPCRole" class="form-select">
+                                <option value="0">None</option>
+                                <option value="1">Antagonist</option>
+                                <option value="2">Ally</option>
+                                <option value="3">Merchant</option>
+                                <option value="4">Plot Driver</option>
+                                <option value="5">Quest Giver</option>
+                                <option value="6">Informant</option>
+                                <option value="7">Henchman</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label asp-for="Character.Status" class="form-label">Status</label>
+                            <select asp-for="Character.Status" class="form-select">
+                                <option value="0">Alive</option>
+                                <option value="1">Dead</option>
+                                <option value="2">Undead</option>
+                                <option value="3">Missing</option>
+                                <option value="4">Unknown</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label asp-for="Character.Race" class="form-label">Race</label>
+                            <div class="input-group">
+                                <input asp-for="Character.Race" class="form-control" placeholder="Human, Elf, Dwarf..." id="CharacterRace" />
+                                <button type="button" class="btn btn-outline-secondary" onclick="generateRandomRace()">
+                                    <i class="bi bi-shuffle"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label asp-for="Character.Class" class="form-label">Class</label>
+                            <div class="input-group">
+                                <input asp-for="Character.Class" class="form-control" placeholder="Wizard, Fighter..." id="CharacterClass" />
+                                <button type="button" class="btn btn-outline-secondary" onclick="generateRandomClass()">
+                                    <i class="bi bi-shuffle"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label asp-for="Character.Role" class="form-label">Role (optional)</label>
+                            <input asp-for="Character.Role" class="form-control" placeholder="Mentor, Quest Giver..." />
+                        </div>
+                    </div>
+
+<hr class="chr-divider" />
+<h5 class="mb-3" style="color: var(--chr-gold);">
+    <i class="bi bi-graph-up me-1"></i>Statistics
+    <small class="text-muted ms-2">Points remaining: <span id="pointsRemaining" class="text-warning">60</span> / 60 (Total used: <span id="totalUsed">0</span>)</small>
+</h5>
+
+<!-- Stats Input Section - 6 Stats -->
+<div class="row">
+    <div class="col-md-2 mb-2">
+        <label class="form-label text-center d-block">Strength</label>
+        <div class="input-group">
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="adjustStat('Strength', -1)">-</button>
+            <input asp-for="Character.Strength" class="form-control text-center stat-input" id="Strength" readonly />
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="adjustStat('Strength', 1)">+</button>
+        </div>
+    </div>
+    <div class="col-md-2 mb-2">
+        <label class="form-label text-center d-block">Agility</label>
+        <div class="input-group">
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="adjustStat('Agility', -1)">-</button>
+            <input asp-for="Character.Agility" class="form-control text-center stat-input" id="Agility" readonly />
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="adjustStat('Agility', 1)">+</button>
+        </div>
+    </div>
+    <div class="col-md-2 mb-2">
+        <label class="form-label text-center d-block">Health</label>
+        <div class="input-group">
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="adjustStat('Health', -1)">-</button>
+            <input asp-for="Character.Health" class="form-control text-center stat-input" id="Health" readonly />
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="adjustStat('Health', 1)">+</button>
+        </div>
+    </div>
+    <div class="col-md-2 mb-2">
+        <label class="form-label text-center d-block">Intelligence</label>
+        <div class="input-group">
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="adjustStat('Intelligence', -1)">-</button>
+            <input asp-for="Character.Intelligence" class="form-control text-center stat-input" id="Intelligence" readonly />
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="adjustStat('Intelligence', 1)">+</button>
+        </div>
+    </div>
+    <div class="col-md-2 mb-2">
+        <label class="form-label text-center d-block">Charisma</label>
+        <div class="input-group">
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="adjustStat('Charisma', -1)">-</button>
+            <input asp-for="Character.Charisma" class="form-control text-center stat-input" id="Charisma" readonly />
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="adjustStat('Charisma', 1)">+</button>
+        </div>
+    </div>
+    <div class="col-md-2 mb-2">
+        <label class="form-label text-center d-block">Endurance</label>
+        <div class="input-group">
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="adjustStat('Endurance', -1)">-</button>
+            <input asp-for="Character.Endurance" class="form-control text-center stat-input" id="Endurance" readonly />
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="adjustStat('Endurance', 1)">+</button>
+        </div>
+    </div>
+</div>
+
+<!-- Radar Chart Section - Real Spiderweb -->
+<div class="radar-chart-container mt-4">
+    <h6 class="text-center mb-3" style="color: var(--chr-gold);"><i class="bi bi-spider me-1"></i>Stat Distribution</h6>
+    <div class="text-center mb-3">
+        <canvas id="radarCanvas" width="350" height="350" style="max-width: 100%;"></canvas>
+    </div>
+</div>
+
+<div class="row mt-3">
+    <div class="col-md-12 text-center">
+        <button type="button" class="btn btn-outline-chronicle" onclick="generateRandomStats()">
+            <i class="bi bi-shuffle me-1"></i> Random Stats
+        </button>
+        <button type="button" class="btn btn-outline-secondary" onclick="resetStats()">
+            <i class="bi bi-arrow-clockwise me-1"></i> Reset to 0
+        </button>
+    </div>
+
+                    <hr class="chr-divider" />
+
+                    <div class="mb-3">
+                        <label asp-for="Character.Description" class="form-label">Description</label>
+                        <textarea asp-for="Character.Description" class="form-control" rows="3" placeholder="Describe this character..."></textarea>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Character.SharedNotes" class="form-label">Shared Notes (everyone can see)</label>
+                            <textarea asp-for="Character.SharedNotes" class="form-control" rows="3" placeholder="Visible to all players..."></textarea>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Character.GMNotes" class="form-label">GM Notes (only GM can see)</label>
+                            <textarea asp-for="Character.GMNotes" class="form-control" rows="3" placeholder="Private notes..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a asp-page="/Characters/Index" asp-route-campaignId="@Model.CampaignId" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-1"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-chronicle">
+                            <i class="bi bi-check-lg me-1"></i>Create Character
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const MAX_POINTS = 60;
+        const BASE_STAT = 0;
+        const MAX_STAT = 18;
+        let usedPoints = 0;
+
+        function calculateUsedPoints() {
+            usedPoints = 0;
+            ['Strength', 'Agility', 'Health', 'Intelligence', 'Charisma', 'Endurance'].forEach(stat => {
+                const val = parseInt(document.getElementById(stat).value) || 0;
+                usedPoints += val;
+            });
+            document.getElementById('pointsRemaining').textContent = MAX_POINTS - usedPoints;
+            document.getElementById('totalUsed').textContent = usedPoints;
+        }
+
+        function adjustStat(stat, delta) {
+            const input = document.getElementById(stat);
+            let val = parseInt(input.value) || 0;
+            const newVal = val + delta;
+            
+            if (newVal >= 0 && newVal <= MAX_STAT) {
+                let total = 0;
+                ['Strength', 'Agility', 'Health', 'Intelligence', 'Charisma', 'Endurance'].forEach(s => {
+                    if (s === stat) {
+                        total += newVal;
+                    } else {
+                        total += parseInt(document.getElementById(s).value) || 0;
+                    }
+                });
+                
+                if (total <= MAX_POINTS || delta < 0) {
+                    input.value = newVal;
+                    calculateUsedPoints();
+                    updateRadarChart();
+                }
+            }
+        }
+
+        // Real Spiderweb Radar Chart using Canvas
+        function updateRadarChart() {
+            const canvas = document.getElementById('radarCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = Math.min(centerX, centerY) - 40;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Get stat values
+            const stats = ['Strength', 'Agility', 'Health', 'Intelligence', 'Charisma', 'Endurance'];
+            const values = stats.map(s => parseInt(document.getElementById(s).value) || 0);
+            const numStats = stats.length;
+            const angleStep = (2 * Math.PI) / numStats;
+            
+            // Draw spiderweb grid
+            const levels = 5;
+            ctx.strokeStyle = 'rgba(139, 92, 246, 0.3)';
+            ctx.lineWidth = 1;
+            
+            for (let level = 1; level <= levels; level++) {
+                const levelRadius = (radius / levels) * level;
+                ctx.beginPath();
+                for (let i = 0; i <= numStats; i++) {
+                    const angle = i * angleStep - Math.PI / 2;
+                    const x = centerX + levelRadius * Math.cos(angle);
+                    const y = centerY + levelRadius * Math.sin(angle);
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.closePath();
+                ctx.stroke();
+            }
+            
+            // Draw axes
+            ctx.strokeStyle = 'rgba(139, 92, 246, 0.5)';
+            for (let i = 0; i < numStats; i++) {
+                const angle = i * angleStep - Math.PI / 2;
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.lineTo(centerX + radius * Math.cos(angle), centerY + radius * Math.sin(angle));
+                ctx.stroke();
+            }
+            
+            // Draw labels
+            ctx.fillStyle = '#d4a843';
+            ctx.font = 'bold 12px Arial';
+            ctx.textAlign = 'center';
+            for (let i = 0; i < numStats; i++) {
+                const angle = i * angleStep - Math.PI / 2;
+                const labelRadius = radius + 25;
+                const x = centerX + labelRadius * Math.cos(angle);
+                const y = centerY + labelRadius * Math.sin(angle);
+                ctx.fillText(stats[i], x, y + 4);
+            }
+            
+            // Draw data polygon
+            ctx.beginPath();
+            for (let i = 0; i <= numStats; i++) {
+                const idx = i % numStats;
+                const angle = idx * angleStep - Math.PI / 2;
+                const value = values[idx];
+                const valueRadius = (value / MAX_STAT) * radius;
+                const x = centerX + valueRadius * Math.cos(angle);
+                const y = centerY + valueRadius * Math.sin(angle);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            
+            // Fill polygon
+            const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
+            gradient.addColorStop(0, 'rgba(139, 92, 246, 0.5)');
+            gradient.addColorStop(1, 'rgba(212, 168, 67, 0.3)');
+            ctx.fillStyle = gradient;
+            ctx.fill();
+            
+            // Stroke polygon
+            ctx.strokeStyle = '#d4a843';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // Draw points
+            for (let i = 0; i < numStats; i++) {
+                const angle = i * angleStep - Math.PI / 2;
+                const value = values[i];
+                const valueRadius = (value / MAX_STAT) * radius;
+                const x = centerX + valueRadius * Math.cos(angle);
+                const y = centerY + valueRadius * Math.sin(angle);
+                
+                ctx.beginPath();
+                ctx.arc(x, y, 6, 0, 2 * Math.PI);
+                ctx.fillStyle = '#d4a843';
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+        }
+
+        function toggleNPCRoles() {
+            const type = document.getElementById('CharacterType').value;
+            const npcSection = document.getElementById('npcRoleSection');
+            npcSection.style.display = type === '1' ? 'block' : 'none';
+        }
+
+        async function generateRandomName() {
+            // Get current race and class to generate appropriate name
+            const race = document.getElementById('CharacterRace').value || 'human';
+            const characterClass = document.getElementById('CharacterClass').value || 'fighter';
+            
+            // Try AI first using unlimited Pollinations AI
+            try {
+                const response = await fetch('/AIGenerator/GenerateEntityName', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ entityType: 'character', theme: race + ' ' + characterClass, context: 'fantasy RPG' })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.name && data.name.length > 2 && data.name.length < 40) {
+                        document.getElementById('CharacterName').value = data.name;
+                        return;
+                    }
+                }
+            } catch (error) {
+                console.log('AI generation failed, using fallback');
+            }
+            
+            // Fallback to extensive local list
+            const humanFirstNames = ['Aldric', 'Brenna', 'Cedric', 'Dara', 'Eldric', 'Freya', 'Gareth', 'Helena', 'Idris', 'Jasmine', 'Kael', 'Luna', 'Magnus', 'Nadia', 'Orion', 'Rowan', 'Soren', 'Thalia', 'Wren', 'Zephyr', 'Kira', 'Dante', 'Vera', 'Marcus', 'Sasha', 'Tristan', 'Isolde', 'Fenris', 'Lysander', 'Seraphina'];
+            const elfFirstNames = ['Aelindra', 'Caelum', 'Eryndor', 'Faelyn', 'Galadriel', 'Ilrath', 'Laethiel', 'Miriel', 'Nimrodel', 'Silvanus', 'Thranduil', 'Arwen', 'Luthien', 'Feanor', 'Melian', 'Thingol', 'Earendil', 'Elrond', 'Elladan', 'Elrohir'];
+            const dwarfFirstNames = ['Balin', 'Dwalin', 'Fili', 'Gimli', 'Kili', 'Thorin', 'Durin', 'Gloin', 'Oin', 'Bofur', 'Bombur', 'Nori', 'Dori', 'Ori', 'Bifur', 'Grumni', 'Bombur', 'Frerin', 'Dis', 'Dain'];
+            const orcFirstNames = ['Grom', 'Thrash', 'Ugluk', 'Mogul', 'Gashnak', 'Grishnak', 'Lurtz', 'Bolg', 'Azog', 'Boldog', 'Golfimbul', 'Radbug', 'Shagrat', 'Gorbag', 'Mauhur', 'Lugdush', 'Ugluk', 'Snaga', 'Scurv', 'Durb', 'Zig'];
+            const halflingFirstNames = ['Pippin', 'Merry', 'Frodo', 'Sam', 'Bilbo', 'Rosie', 'Hamfast', 'Meriadoc', 'Rosie', 'Cotton', 'Brandybuck', 'Bramble', 'Milo', 'Osborn', 'Merry', 'Folly', 'Jolly', 'Mildred', 'Pearl', 'May'];
+            const tieflingFirstNames = ['Morrigan', 'Raziel', 'Lilith', 'Dante', 'Aurora', 'Zariel', 'Mephistopheles', 'Belial', 'Meg', 'Carrion', 'Damakos', 'Ekemon', 'Iados', 'Kairon', 'Leucis', 'Melech', 'Morthos', 'Nemeia', 'Orianna', 'Pelaios'];
+            const dragonbornFirstNames = ['Arjhan', 'Balasar', 'Bharash', 'Donaar', 'Ghesh', 'Heskan', 'Kriv', 'Medrash', 'Nala', 'Pandjed', 'Patrin', 'Rhogar', 'Shamash', 'Shedinn', 'Tarhun', 'Torinn', 'Balew', 'Bharash', 'Donaar', 'Ghesh'];
+            
+            const lastNames = ['Blackwood', 'Stormwind', 'Ironforge', 'Shadowmere', 'Brightblade', 'Frostborn', 'Moonwhisper', 'Stoneheart', 'Thornwood', 'Dragonbane', 'Silvermist', 'Goldweaver', 'Darkhollow', 'Lightbringer', 'Swiftfoot', 'Greymantle', 'Winterborn', 'Sunfire', 'Starfall', 'Nightwind', 'Steelheart', 'Flameheart', 'Frostshield', 'Stormcaller', 'Ironwill', 'Thunderfoot'];
+            
+            let firstNames = humanFirstNames;
+            if (race) {
+                if (race.toLowerCase().includes('elf') || race.toLowerCase().includes('elven')) {
+                    firstNames = elfFirstNames;
+                } else if (race.toLowerCase().includes('dwarf') || race.toLowerCase().includes('dwarven')) {
+                    firstNames = dwarfFirstNames;
+                } else if (race.toLowerCase().includes('orc') || race.toLowerCase().includes('half-orc')) {
+                    firstNames = orcFirstNames;
+                } else if (race.toLowerCase().includes('halfling') || race.toLowerCase().includes('hobbit')) {
+                    firstNames = halflingFirstNames;
+                } else if (race.toLowerCase().includes('tiefling')) {
+                    firstNames = tieflingFirstNames;
+                } else if (race.toLowerCase().includes('dragonborn')) {
+                    firstNames = dragonbornFirstNames;
+                }
+            }
+            
+            const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
+            const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
+            document.getElementById('CharacterName').value = firstName + ' ' + lastName;
+        }
+
+        function generateRandomRace() {
+            const races = ['Human', 'Elf', 'Dwarf', 'Halfling', 'Orc', 'Tiefling', 'Dragonborn', 'Gnome', 'Half-Elf', 'Half-Orc'];
+            document.getElementById('CharacterRace').value = races[Math.floor(Math.random() * races.length)];
+        }
+
+        function generateRandomClass() {
+            const classes = ['Fighter', 'Wizard', 'Rogue', 'Cleric', 'Paladin', 'Ranger', 'Barbarian', 'Bard', 'Druid', 'Monk', 'Sorcerer', 'Warlock'];
+            document.getElementById('CharacterClass').value = classes[Math.floor(Math.random() * classes.length)];
+        }
+
+        function generateRandomStats() {
+            // Distribute 60 points across 6 stats (Strength, Agility, Health, Intelligence, Charisma, Endurance)
+            // Each stat starts at 0 and can go up to 18
+            const stats = ['Strength', 'Agility', 'Health', 'Intelligence', 'Charisma', 'Endurance'];
+            
+            // Give each stat the base value
+            stats.forEach(stat => {
+                document.getElementById(stat).value = 0;
+            });
+            
+            // Distribute 60 points randomly
+            let remainingPoints = 60;
+            while (remainingPoints > 0) {
+                const randomStat = stats[Math.floor(Math.random() * stats.length)];
+                const currentVal = parseInt(document.getElementById(randomStat).value);
+                if (currentVal < MAX_STAT) {
+                    document.getElementById(randomStat).value = currentVal + 1;
+                    remainingPoints--;
+                }
+            }
+            
+            calculateUsedPoints();
+            updateRadarChart();
+        }
+
+        async function generateRandomPortrait() {
+            // Generate a unique seed for the portrait
+            const seed = Math.random().toString(36).substring(7);
+            const race = document.getElementById('CharacterRace').value || 'fantasy';
+            const characterClass = document.getElementById('CharacterClass').value || 'warrior';
+            
+            try {
+                // Try AI image generation endpoint
+                const response = await fetch('/AIGenerator/GeneratePortrait', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        race: race, 
+                        characterClass: characterClass,
+                        seed: seed 
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.imageUrl) {
+                        document.getElementById('portraitPreview').src = data.imageUrl;
+                        document.getElementById('PortraitUrl').value = data.imageUrl;
+                        return;
+                    }
+                }
+            } catch (error) {
+                console.log('AI image generation failed, using fallback');
+            }
+            
+            // Fallback to DiceBear
+            const portraitUrl = `https://api.dicebear.com/7.x/adventurer/svg?seed=${seed}&backgroundColor=b6e3f4`;
+            document.getElementById('portraitPreview').src = portraitUrl;
+            document.getElementById('PortraitUrl').value = portraitUrl;
+        }
+
+        function resetStats() {
+            ['Strength', 'Agility', 'Health', 'Intelligence', 'Charisma', 'Endurance'].forEach(stat => {
+                document.getElementById(stat).value = 0;
+            });
+            calculateUsedPoints();
+            updateRadarChart();
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set initial values to 0
+            ['Strength', 'Agility', 'Health', 'Intelligence', 'Charisma', 'Endurance'].forEach(stat => {
+                document.getElementById(stat).value = 0;
+            });
+            calculateUsedPoints();
+            updateRadarChart();
+        });
+    </script>
+}

@@ -1,0 +1,203 @@
+@page "/achievements"
+@model TheChronicler.Web.Pages.Achievements.IndexModel
+@{
+    ViewData["Title"] = "Achievements";
+}
+
+<style>
+    .achievements-header {
+        text-align: center;
+        padding: 40px 20px;
+        background: linear-gradient(135deg, #1a1a2e 0%, #2d1b4e 100%);
+        border-radius: 16px;
+        margin-bottom: 30px;
+        border: 1px solid var(--chr-gold);
+    }
+
+    .achievements-header h1 {
+        color: var(--chr-gold);
+        font-size: 2.5rem;
+        margin-bottom: 10px;
+    }
+
+    .stats-row {
+        display: flex;
+        justify-content: center;
+        gap: 40px;
+        margin-top: 20px;
+    }
+
+    .stat-circle {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--chr-gold), #c9a227);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: #1a1a2e;
+    }
+
+    .stat-circle .number {
+        font-size: 2rem;
+        font-weight: bold;
+    }
+
+    .stat-circle .label {
+        font-size: 0.75rem;
+    }
+
+    .achievement-category {
+        margin-bottom: 30px;
+    }
+
+    .category-title {
+        color: var(--chr-gold);
+        font-size: 1.3rem;
+        margin-bottom: 15px;
+        border-bottom: 2px solid var(--chr-border);
+        padding-bottom: 8px;
+    }
+
+    .achievements-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 16px;
+    }
+
+    .achievement-card {
+        background: var(--chr-bg-card);
+        border: 1px solid var(--chr-border);
+        border-radius: 12px;
+        padding: 16px;
+        display: flex;
+        gap: 14px;
+        transition: all 0.3s;
+    }
+
+    .achievement-card:hover {
+        border-color: var(--chr-gold);
+        transform: translateY(-2px);
+    }
+
+    .achievement-card.completed {
+        border-color: var(--chr-gold);
+    }
+
+    .achievement-card.locked {
+        opacity: 0.6;
+    }
+
+    .achievement-icon {
+        width: 60px;
+        height: 60px;
+        background: #16213e;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        flex-shrink: 0;
+    }
+
+    .achievement-card.completed .achievement-icon {
+        background: linear-gradient(135deg, var(--chr-gold), #c9a227);
+    }
+
+    .achievement-info {
+        flex: 1;
+    }
+
+    .achievement-name {
+        font-weight: 600;
+        color: var(--chr-text);
+        margin-bottom: 4px;
+    }
+
+    .achievement-desc {
+        font-size: 0.85rem;
+        color: var(--chr-text-muted);
+        margin-bottom: 8px;
+    }
+
+    .achievement-xp {
+        font-size: 0.75rem;
+        color: var(--chr-gold);
+        font-weight: bold;
+    }
+
+    .achievement-progress {
+        width: 100%;
+        height: 6px;
+        background: var(--chr-border);
+        border-radius: 3px;
+        margin-top: 8px;
+        overflow: hidden;
+    }
+
+    .achievement-progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, var(--chr-gold), #c9a227);
+        border-radius: 3px;
+    }
+</style>
+
+<div class="achievements-header">
+    <h1><i class="bi bi-trophy me-3"></i>Achievements</h1>
+    <p class="text-muted">Track your progress and unlock rewards</p>
+    
+    <div class="stats-row">
+        <div class="stat-circle">
+            <span class="number">@Model.CompletedCount</span>
+            <span class="label">Completed</span>
+        </div>
+        <div class="stat-circle">
+            <span class="number">@Model.TotalXP</span>
+            <span class="label">Total XP</span>
+        </div>
+        <div class="stat-circle">
+            <span class="number">@Model.CompletionPercent%</span>
+            <span class="label">Complete</span>
+        </div>
+    </div>
+</div>
+
+@foreach (var category in Model.AchievementsByCategoryList)
+{
+    <div class="achievement-category">
+        <h3 class="category-title">
+            <i class="bi bi-award me-2"></i>@category.Key
+        </h3>
+        
+        <div class="achievements-grid">
+            @foreach (var item in category)
+            {
+                var progress = Model.PlayerProgress.GetValueOrDefault(item.Id);
+                var isCompleted = progress?.IsCompleted ?? false;
+                var currentProgress = progress?.CurrentProgress ?? 0;
+                var required = item.RequiredCount ?? 1;
+                var progressPercent = required > 0 ? (int)((currentProgress / (double)required) * 100) : 0;
+
+                <div class="achievement-card @(isCompleted ? "completed" : (progress != null && !isCompleted ? "" : "locked"))">
+                    <div class="achievement-icon">
+                        @item.Icon
+                    </div>
+                    <div class="achievement-info">
+                        <div class="achievement-name">@item.Name</div>
+                        <div class="achievement-desc">@item.Description</div>
+                        <div class="achievement-xp">+@item.XP XP</div>
+                        
+                        @if (!isCompleted && progress != null && item.RequiredCount.HasValue)
+                        {
+                            <div class="achievement-progress">
+                                <div class="achievement-progress-bar" style="width: @progressPercent%"></div>
+                            </div>
+                            <small class="text-muted">@currentProgress / @required</small>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+}

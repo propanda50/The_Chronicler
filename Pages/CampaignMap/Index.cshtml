@@ -1,0 +1,538 @@
+@page "{campaignId:int}"
+@model TheChronicler.Web.Pages.CampaignMap.IndexModel
+@{
+    ViewData["Title"] = "Campaign Map";
+}
+
+<style>
+    .map-container {
+        position: relative;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 2px solid var(--chr-gold);
+    }
+    
+    #map {
+        height: 600px;
+        width: 100%;
+        background: #1a2238;
+    }
+    
+    .map-controls {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 1000;
+        background: rgba(26, 26, 46, 0.95);
+        border: 1px solid var(--chr-gold);
+        border-radius: 8px;
+        padding: 15px;
+        width: 280px;
+    }
+    
+    .map-controls h6 {
+        color: var(--chr-gold);
+        margin-bottom: 12px;
+        font-weight: 600;
+    }
+    
+    .map-style-btn {
+        width: 100%;
+        margin-bottom: 8px;
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid var(--chr-border);
+        background: var(--chr-bg-surface);
+        color: var(--chr-text);
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .map-style-btn:hover {
+        border-color: var(--chr-gold);
+        background: rgba(212, 168, 67, 0.1);
+    }
+    
+    .map-style-btn.selected {
+        border-color: var(--chr-gold);
+        background: rgba(212, 168, 67, 0.2);
+    }
+    
+    .map-style-btn i {
+        font-size: 1.2rem;
+    }
+    
+    .upload-section {
+        border-top: 1px solid var(--chr-border);
+        padding-top: 12px;
+        margin-top: 12px;
+    }
+    
+    .location-panel {
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        z-index: 1000;
+        background: rgba(26, 26, 46, 0.95);
+        border: 1px solid var(--chr-primary);
+        border-radius: 8px;
+        padding: 15px;
+        width: 300px;
+    }
+    
+    .location-panel h6 {
+        color: var(--chr-primary);
+        margin-bottom: 12px;
+    }
+    
+    .location-marker {
+        position: absolute;
+        transform: translate(-50%, -100%);
+        cursor: pointer;
+        z-index: 500;
+    }
+    
+    .location-marker-inner {
+        background: var(--chr-gold);
+        border: 2px solid #fff;
+        border-radius: 50% 50% 50% 0;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        transition: transform 0.2s;
+    }
+    
+    .location-marker:hover .location-marker-inner {
+        transform: scale(1.2);
+    }
+    
+    .location-marker i {
+        color: #1a1a2e;
+        font-size: 0.9rem;
+    }
+    
+    .location-popup {
+        background: var(--chr-bg-card);
+        border: 1px solid var(--chr-gold);
+        border-radius: 8px;
+        padding: 12px;
+        min-width: 200px;
+    }
+    
+    .location-popup h6 {
+        color: var(--chr-gold);
+        margin-bottom: 8px;
+    }
+    
+    .location-popup p {
+        color: var(--chr-text-muted);
+        font-size: 0.9rem;
+        margin-bottom: 8px;
+    }
+    
+    .location-popup a {
+        color: var(--chr-primary);
+        font-size: 0.85rem;
+    }
+    
+    .click-instruction {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0,0,0,0.8);
+        padding: 20px 40px;
+        border-radius: 12px;
+        z-index: 900;
+        display: none;
+    }
+    
+    .click-instruction.show {
+        display: block;
+    }
+    
+    .click-instruction h5 {
+        color: var(--chr-gold);
+        margin-bottom: 8px;
+    }
+    
+    .click-instruction p {
+        color: var(--chr-text-muted);
+        margin: 0;
+    }
+    
+    .generating-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(0,0,0,0.8);
+        z-index: 950;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+    }
+    
+    .generating-overlay.hidden {
+        display: none;
+    }
+    
+    .spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid var(--chr-border);
+        border-top-color: var(--chr-gold);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+    
+    @@keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    
+    .current-map-preview {
+        width: 100%;
+        height: 150px;
+        object-fit: cover;
+        border-radius: 8px;
+        margin-bottom: 12px;
+        border: 1px solid var(--chr-border);
+    }
+</style>
+
+<div class="page-header">
+    <h2><i class="bi bi-map me-2"></i>Campaign Map</h2>
+    <small class="text-muted">@Model.CampaignName</small>
+</div>
+
+<div class="map-container">
+    <div id="map"></div>
+    
+    <div class="click-instruction" id="clickInstruction">
+        <h5><i class="bi bi-hand-index me-2"></i>Cliquez sur la carte</h5>
+        <p>Puis cliquez "Ajouter cette position" pour créer une location</p>
+    </div>
+    
+    <div class="generating-overlay hidden" id="generatingOverlay">
+        <div class="spinner mb-3"></div>
+        <p class="text-light">Génération de la carte par IA...</p>
+    </div>
+    
+    <div class="map-controls">
+        <h6><i class="bi bi-grid me-1"></i>Style de Carte</h6>
+        
+        @if (!string.IsNullOrEmpty(Model.MapUrl))
+        {
+            <img src="@Model.MapUrl" alt="Current Map" class="current-map-preview" />
+        }
+        
+        <button type="button" class="map-style-btn" onclick="generateMap('real')">
+            <i class="bi bi-globe-americas" style="color: #10b981;"></i>
+            <span>Style Réel</span>
+        </button>
+        
+        <button type="button" class="map-style-btn" onclick="generateMap('fantasy')">
+            <i class="bi bi-stars" style="color: #a855f7;"></i>
+            <span>Style Fantasy</span>
+        </button>
+        
+        <button type="button" class="map-style-btn" onclick="generateMap('fortnite')">
+            <i class="bi bi-brightness-high" style="color: #f59e0b;"></i>
+            <span>Style Fortnite</span>
+        </button>
+        
+        <button type="button" class="map-style-btn" onclick="generateMap('minecraft')">
+            <i class="bi bi-box" style="color: #84cc16;"></i>
+            <span>Style Minecraft</span>
+        </button>
+        
+        <button type="button" class="map-style-btn" onclick="generateMap('gta')">
+            <i class="bi bi-car-front" style="color: #ef4444;"></i>
+            <span>Style GTA</span>
+        </button>
+        
+        <div class="upload-section">
+            <h6><i class="bi bi-upload me-1"></i>Ou upload ta propre carte</h6>
+            <input type="file" id="mapUpload" class="form-control form-control-sm" accept="image/*" onchange="uploadMap()" />
+        </div>
+    </div>
+    
+    <div class="location-panel" id="locationPanel">
+        <h6><i class="bi bi-geo-alt me-1"></i>Ajouter une Location</h6>
+        
+        <div class="mb-2">
+            <input type="text" id="newLocationName" class="form-control form-control-sm" placeholder="Nom de la location" />
+        </div>
+        
+        <div class="mb-2">
+            <input type="text" id="newLocationDesc" class="form-control form-control-sm" placeholder="Description (optionnel)" />
+        </div>
+        
+        <div class="mb-2">
+            <input type="text" id="newLocationRegion" class="form-control form-control-sm" placeholder="Région" />
+        </div>
+        
+        <div class="mb-2">
+            <input type="text" id="newLocationType" class="form-control form-control-sm" placeholder="Type (ville, donjon...)" />
+        </div>
+        
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-chronicle btn-sm flex-grow-1" onclick="addLocation()">
+                <i class="bi bi-plus-lg me-1"></i>Ajouter
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="cancelLocation()">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+        
+        <hr class="chr-divider" />
+        
+        <h6><i class="bi bi-list me-1"></i>Locations (@Model.Locations.Count)</h6>
+        <div style="max-height: 200px; overflow-y: auto;">
+            @foreach (var loc in Model.Locations)
+            {
+                <div class="d-flex justify-content-between align-items-center p-2 mb-1" style="background: var(--chr-bg-surface); border-radius: 4px;">
+                    <div>
+                        <strong>@loc.Name</strong>
+                        @if (!string.IsNullOrEmpty(loc.Type))
+                        {
+                            <span class="badge bg-secondary ms-1" style="font-size: 0.7rem;">@loc.Type</span>
+                        }
+                    </div>
+                    <a asp-page="/Locations/Details" asp-route-id="@loc.Id" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-eye"></i>
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<input type="hidden" id="campaignId" value="@Model.CampaignId" />
+<input type="hidden" id="selectedLat" value="" />
+<input type="hidden" id="selectedLng" value="" />
+
+@section Scripts {
+    <script>
+        let map;
+        let selectedLatLng = null;
+        let markers = [];
+        
+        function initMap() {
+            map = L.map('map').setView([0, 0], 2);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap',
+                maxZoom: 19
+            }).addTo(map);
+            
+            map.on('click', function(e) {
+                selectedLatLng = e.latlng;
+                document.getElementById('selectedLat').value = e.latlng.lat;
+                document.getElementById('selectedLng').value = e.latlng.lng;
+                
+                showClickInstruction(true);
+                
+                if (window.tempMarker) {
+                    map.removeLayer(window.tempMarker);
+                }
+                
+                window.tempMarker = L.marker(e.latlng, {
+                    icon: L.divIcon({
+                        className: 'location-marker',
+                        html: '<div class="location-marker-inner"><i class="bi bi-geo-alt-fill"></i></div>',
+                        iconSize: [30, 30],
+                        iconAnchor: [15, 30]
+                    })
+                }).addTo(map);
+            });
+            
+            loadExistingMarkers();
+        }
+        
+        function loadExistingMarkers() {
+            const locations = @Html.Raw(Json.Serialize(Model.Locations));
+            locations.forEach(loc => {
+                if (loc.mapX && loc.mapY) {
+                    addMarkerToMap(loc.mapY, loc.mapX, loc.name, loc.description, loc.id);
+                }
+            });
+        }
+        
+        function addMarkerToMap(lat, lng, name, description, id) {
+            const marker = L.marker([lat, lng], {
+                icon: L.divIcon({
+                    className: 'location-marker',
+                    html: '<div class="location-marker-inner"><i class="bi bi-geo-alt-fill"></i></div>',
+                    iconSize: [30, 30],
+                    iconAnchor: [15, 30]
+                })
+            }).addTo(map);
+            
+            const popupContent = `
+                <div class="location-popup">
+                    <h6>${name}</h6>
+                    <p>${description || ''}</p>
+                    <a href="/Locations/Details?id=${id}">Voir les détails</a>
+                </div>
+            `;
+            marker.bindPopup(popupContent);
+            markers.push(marker);
+        }
+        
+        function showClickInstruction(show) {
+            const el = document.getElementById('clickInstruction');
+            if (show) {
+                el.classList.add('show');
+                setTimeout(() => {
+                    el.classList.remove('show');
+                }, 3000);
+            } else {
+                el.classList.remove('show');
+            }
+        }
+        
+        function addLocation() {
+            if (!selectedLatLng) {
+                alert('Cliquez d\'abord sur la carte pour sélectionner une position!');
+                return;
+            }
+            
+            const name = document.getElementById('newLocationName').value;
+            if (!name) {
+                alert('Entrez un nom pour la location!');
+                return;
+            }
+            
+            const description = document.getElementById('newLocationDesc').value;
+            const region = document.getElementById('newLocationRegion').value;
+            const type = document.getElementById('newLocationType').value;
+            const campaignId = document.getElementById('campaignId').value;
+            
+            fetch('/CampaignMap?handler=AddLocation', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                },
+                body: JSON.stringify({
+                    campaignId: parseInt(campaignId),
+                    name: name,
+                    description: description,
+                    region: region,
+                    type: type,
+                    mapX: selectedLatLng.lng,
+                    mapY: selectedLatLng.lat
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                addMarkerToMap(selectedLatLng.lat, selectedLatLng.lng, name, description, data.id);
+                
+                document.getElementById('newLocationName').value = '';
+                document.getElementById('newLocationDesc').value = '';
+                document.getElementById('newLocationRegion').value = '';
+                document.getElementById('newLocationType').value = '';
+                
+                if (window.tempMarker) {
+                    map.removeLayer(window.tempMarker);
+                    window.tempMarker = null;
+                }
+                selectedLatLng = null;
+                
+                location.reload();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Erreur lors de l\'ajout de la location');
+            });
+        }
+        
+        function cancelLocation() {
+            if (window.tempMarker) {
+                map.removeLayer(window.tempMarker);
+                window.tempMarker = null;
+            }
+            selectedLatLng = null;
+            showClickInstruction(false);
+        }
+        
+        async function generateMap(style) {
+            const campaignId = document.getElementById('campaignId').value;
+            const campaignName = '@Model.CampaignName';
+            
+            document.getElementById('generatingOverlay').classList.remove('hidden');
+            
+            try {
+                const response = await fetch('/CampaignMap?handler=GenerateMap', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                    },
+                    body: JSON.stringify({
+                        campaignId: parseInt(campaignId),
+                        campaignName: campaignName,
+                        style: style
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.imageUrl) {
+                        location.reload();
+                    } else {
+                        alert('Erreur lors de la génération de la carte');
+                    }
+                } else {
+                    alert('Erreur lors de la génération de la carte');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Erreur lors de la génération de la carte');
+            } finally {
+                document.getElementById('generatingOverlay').classList.add('hidden');
+            }
+        }
+        
+        function uploadMap() {
+            const fileInput = document.getElementById('mapUpload');
+            const file = fileInput.files[0];
+            
+            if (!file) return;
+            
+            const campaignId = document.getElementById('campaignId').value;
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('campaignId', campaignId);
+            
+            document.getElementById('generatingOverlay').classList.remove('hidden');
+            
+            fetch('/CampaignMap?handler=UploadMap', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                location.reload();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Erreur lors de l\'upload de la carte');
+            })
+            .finally(() => {
+                document.getElementById('generatingOverlay').classList.add('hidden');
+            });
+        }
+        
+        document.addEventListener('DOMContentLoaded', initMap);
+    </script>
+}

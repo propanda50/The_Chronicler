@@ -1,0 +1,143 @@
+<!-- Hidden Google Translate Element for Instant Localization -->
+<div id="google_translate_element" style="display:none;"></div>
+
+<script type="text/javascript">
+    function googleTranslateElementInit() {
+        new google.translate.TranslateElement({
+            pageLanguage: 'en',
+            autoDisplay: false
+        }, 'google_translate_element');
+        
+        // After init, if there's a PreferredLanguage in JS variable, apply it
+        setTimeout(function() {
+            if (typeof window.currentUserLanguage !== 'undefined' && window.currentUserLanguage !== 'en') {
+                applyTranslation(window.currentUserLanguage);
+            }
+        }, 1000);
+    }
+    
+    function applyTranslation(langCode) {
+        // Find the hidden Google Translate dropdown
+        var selectElement = document.querySelector('select.goog-te-combo');
+        if (selectElement) {
+            selectElement.value = langCode;
+            selectElement.dispatchEvent(new Event('change'));
+        }
+    }
+
+    function changeLanguage(langCode) {
+        // Save form state to prevent data loss on reload
+        var forms = document.querySelectorAll('form');
+        if (forms.length > 0) {
+            var formData = {};
+            var inputs = forms[0].querySelectorAll('input, select, textarea');
+            inputs.forEach(function(input) {
+                if (input.name && input.type !== 'password') {
+                    formData[input.name] = input.type === 'checkbox' ? input.checked : input.value;
+                }
+            });
+            sessionStorage.setItem('tempFormData', JSON.stringify(formData));
+        }
+
+        // Set the google translate cookie
+        var expires = new Date();
+        expires.setTime(expires.getTime() + (365 * 24 * 60 * 60 * 1000));
+        var cookieStr = "googtrans=/en/" + langCode;
+        document.cookie = cookieStr + ";expires=" + expires.toUTCString() + ";path=/";
+        document.cookie = cookieStr + ";expires=" + expires.toUTCString() + ";domain=" + window.location.hostname + ";path=/";
+        
+        // Reload the page
+        window.location.reload();
+    }
+
+    // Restore form state after reload
+    document.addEventListener('DOMContentLoaded', function() {
+        var savedData = sessionStorage.getItem('tempFormData');
+        if (savedData) {
+            try {
+                var formData = JSON.parse(savedData);
+                var forms = document.querySelectorAll('form');
+                if (forms.length > 0) {
+                    var inputs = forms[0].querySelectorAll('input, select, textarea');
+                    inputs.forEach(function(input) {
+                        if (input.name && formData[input.name] !== undefined) {
+                            if (input.type === 'checkbox') {
+                                input.checked = formData[input.name];
+                            } else {
+                                input.value = formData[input.name];
+                            }
+                        }
+                    });
+                }
+            } catch (e) { }
+            sessionStorage.removeItem('tempFormData');
+        }
+
+        // DON'T auto-save on language change - user must click Save button manually
+        // The language dropdown in Settings page should NOT trigger auto-translate
+        // Only the explicit "Save Preferences" button should save the language
+        
+        // For Login/Register page, we DO want instant translation without saving
+        var isAuthPage = window.location.pathname.toLowerCase().includes('/login') || 
+                         window.location.pathname.toLowerCase().includes('/register');
+        
+        if (isAuthPage) {
+            var langSelects = document.querySelectorAll('select[name="Language"]');
+            langSelects.forEach(function(select) {
+                select.addEventListener('change', function(e) {
+                    changeLanguage(e.target.value);
+                });
+            });
+        }
+    });
+</script>
+<script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+
+<style>
+    /* Hide the annoying top bar from Google Translate - ALL approaches */
+    .goog-te-banner-frame {
+        display: none !important;
+        height: 0px !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        position: absolute !important;
+    }
+    .skiptranslate {
+        display: none !important;
+    }
+    body {
+        top: 0px !important;
+    }
+    /* Hide tooltip boxes */
+    #goog-gt-tt {
+        display: none !important;
+    }
+    .goog-text-highlight {
+        background-color: transparent !important;
+        box-shadow: none !important;
+    }
+    /* Also hide any residual banner */
+    div[id^="goog-wrapper"] {
+        display: none !important;
+    }
+    /* Prevent body shift when banner appears */
+    body > .goog-te-banner-frame {
+        display: none !important;
+    }
+</style>
+
+<script>
+    // Aggressive banner removal
+    setTimeout(function() {
+        var banner = document.querySelector('.goog-te-banner-frame');
+        if (banner) {
+            banner.style.display = 'none';
+            banner.style.height = '0';
+            banner.style.visibility = 'hidden';
+        }
+        var wrappers = document.querySelectorAll('[id*="goog-wrapper"]');
+        wrappers.forEach(function(w) {
+            w.style.display = 'none';
+        });
+    }, 500);
+</script>

@@ -1,0 +1,110 @@
+@page
+@model TheChronicler.Web.Pages.Locations.CreateModel
+@{
+    ViewData["Title"] = "New Location";
+}
+
+<div class="page-header">
+    <h2><i class="bi bi-geo-alt-fill me-2"></i>New Location</h2>
+    <small class="text-muted">
+        <a asp-page="/Campaigns/Details" asp-route-id="@Model.CampaignId" class="entity-link">@Model.CampaignName</a>
+    </small>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body p-4">
+                <form method="post">
+                    <input type="hidden" asp-for="Location.CampaignId" value="@Model.CampaignId" />
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="Location.Name" class="form-label">Location Name</label>
+                        <div class="input-group">
+                            <input asp-for="Location.Name" class="form-control" placeholder="The Sunken Citadel" id="LocationName" />
+                            <button type="button" class="btn btn-outline-secondary" onclick="generateRandomLocationName()">
+                                <i class="bi bi-shuffle"></i> Random
+                            </button>
+                        </div>
+                        <span asp-validation-for="Location.Name" class="text-danger"></span>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Location.Region" class="form-label">Region</label>
+                            <input asp-for="Location.Region" class="form-control" placeholder="Sword Coast, Underdark..." />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Location.Type" class="form-label">Type</label>
+                            <input asp-for="Location.Type" class="form-control" placeholder="City, Dungeon, Tavern, Forest..." />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Location.Description" class="form-label">Description</label>
+                        <textarea asp-for="Location.Description" class="form-control" rows="4" placeholder="Describe this location..."></textarea>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a asp-page="/Locations/Index" asp-route-campaignId="@Model.CampaignId" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-1"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-chronicle">
+                            <i class="bi bi-check-lg me-1"></i>Create Location
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        async function generateRandomLocationName() {
+            // Try AI first
+            try {
+                const response = await fetch('/AIGenerator/GenerateEntityName', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ entityType: 'location', theme: 'fantasy' })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.name && data.name.length > 2) {
+                        document.getElementById('LocationName').value = data.name;
+                        return;
+                    }
+                }
+            } catch (error) {
+                console.log('AI generation failed, using fallback');
+            }
+            
+            // Fallback to extensive local list
+            const prefixes = ["The", "Ancient", "Lost", "Hidden", "Dark", "Golden", "Silver", "Frozen", "Burning", "Whispering", "Shadow", "Crystal", "Iron", "Storm", "Star", "Moon", "Sun", "Blood", "Bone", "Death", "Eternal", "Forgotten", "Mystic", "Cursed", "Blessed", "Sacred", "Forbidden", "Silent", "Verdant", "Crimson", "Obsidian", "Emerald", "Sapphire", "Amethyst", "Mithril", "Adamantite", "Copper", "Bronze", "Platinum"];
+            const types = ["Citadel", "Temple", "Tavern", "Forest", "Cave", "Tower", "Keep", "Sanctuary", "Ruins", "Port", "Village", "City", "Dungeon", "Shrine", "Inn", "Palace", "Library", "Arena", "Graveyard", "Spring", "Mount", "Valley", "Plain", "Desert", "Island", "Volcano", "Glacier", "Swamp", "Marsh", "Peak", "Canyon", "Gorge", "Waterfall", "Lake", "River", "Fortress", "Bastion", "Stronghold", "Haven", "Refuge", "Domain"];
+            const suffixes = ["of Shadows", "of Light", "of Dreams", "of Doom", "of Hope", "of Fear", "of Time", "of Eternity", "of the Ancients", "of the Lost", "of the Damned", "of the Forgotten", "of the Void", "of the Stars", "of the Moon", "of the Sun", "of the Dawn", "of the Dusk", "of the Night", "of the Day", "of Winter", "of Summer", "of Spring", "of Autumn", "of the East", "of the West", "of the North", "of the South", "of the Beyond", "of the Unknown", "of the Hidden", "of the Sacred"];
+            
+            const format = Math.floor(Math.random() * 4);
+            let name;
+            
+            switch(format) {
+                case 0:
+                    name = prefixes[Math.floor(Math.random() * prefixes.length)] + ' ' + types[Math.floor(Math.random() * types.length)];
+                    break;
+                case 1:
+                    name = prefixes[Math.floor(Math.random() * prefixes.length)] + ' ' + types[Math.floor(Math.random() * types.length)] + ' ' + suffixes[Math.floor(Math.random() * suffixes.length)];
+                    break;
+                case 2:
+                    name = types[Math.floor(Math.random() * types.length)] + ' ' + suffixes[Math.floor(Math.random() * suffixes.length)];
+                    break;
+                default:
+                    name = types[Math.floor(Math.random() * types.length)];
+            }
+            
+            document.getElementById('LocationName').value = name.trim();
+        }
+    </script>
+}

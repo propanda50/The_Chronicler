@@ -1,0 +1,263 @@
+@page
+@model TheChronicler.Web.Pages.AiChat.IndexModel
+@{
+    ViewData["Title"] = "AI Assistant";
+}
+
+<style>
+    #aiChatContainer {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 400px;
+        height: 500px;
+        background: #1a1a2e;
+        border-radius: 16px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        display: none;
+        flex-direction: column;
+        z-index: 9999;
+        border: 1px solid var(--chr-gold);
+    }
+    
+    #aiChatContainer.open {
+        display: flex;
+    }
+    
+    .ai-chat-header {
+        padding: 12px 16px;
+        background: linear-gradient(135deg, var(--chr-gold), #c9a227);
+        border-radius: 16px 16px 0 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .ai-chat-header h6 {
+        margin: 0;
+        color: #1a1a2e;
+        font-weight: bold;
+    }
+    
+    #aiMessages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+    }
+    
+    .ai-message {
+        margin-bottom: 12px;
+        padding: 10px 14px;
+        border-radius: 12px;
+        max-width: 85%;
+    }
+    
+    .ai-message.bot {
+        background: #16213e;
+        color: #e0e0e0;
+        border-bottom-left-radius: 4px;
+    }
+    
+    .ai-message.user {
+        background: var(--chr-gold);
+        color: #1a1a2e;
+        margin-left: auto;
+        border-bottom-right-radius: 4px;
+    }
+    
+    #aiInput {
+        border: none;
+        background: #16213e;
+        color: white;
+        border-radius: 0 0 0 16px;
+    }
+    
+    #aiSendBtn {
+        border-radius: 0 0 16px 0;
+    }
+    
+    .ai-toggle-btn {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--chr-gold), #c9a227);
+        border: none;
+        color: #1a1a2e;
+        font-size: 24px;
+        cursor: pointer;
+        box-shadow: 0 4px 20px rgba(201, 162, 39, 0.4);
+        z-index: 9998;
+        transition: transform 0.2s;
+    }
+    
+    .ai-toggle-btn:hover {
+        transform: scale(1.1);
+    }
+    
+    .ai-toggle-btn.active {
+        bottom: 540px;
+    }
+    
+    .voice-btn {
+        background: transparent;
+        border: 1px solid var(--chr-gold);
+        color: var(--chr-gold);
+        border-radius: 50%;
+        width: 36px;
+        height: 36px;
+    }
+    
+    .voice-btn.recording {
+        background: #e74c3c;
+        border-color: #e74c3c;
+        color: white;
+        animation: pulse 1s infinite;
+    }
+    
+    @@keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+</style>
+
+<button class="ai-toggle-btn" id="aiToggleBtn" onclick="toggleAiChat()">
+    <i class="bi bi-robot"></i>
+</button>
+
+<div id="aiChatContainer">
+    <div class="ai-chat-header">
+        <h6><i class="bi bi-robot me-2"></i>AI Assistant</h6>
+        <button class="btn btn-sm" onclick="toggleAiChat()" style="background:transparent;border:none;color:#1a1a2e;">
+            <i class="bi bi-x-lg"></i>
+        </button>
+    </div>
+    
+    <div id="aiMessages">
+        <div class="ai-message bot">
+            Hello! I'm your AI assistant. I can help you create characters, campaigns, locations, and more. Just tell me what you need!
+        </div>
+    </div>
+    
+    <div class="input-group p-2" style="background:#16213e;border-radius:0 0 16px 16px;">
+        <button class="btn voice-btn" id="voiceBtn" onclick="toggleVoice()">
+            <i class="bi bi-mic"></i>
+        </button>
+        <input type="text" id="aiInput" class="form-control" placeholder="Ask me anything..." onkeypress="if(event.key==='Enter')sendAiMessage()" />
+        <button class="btn btn-chronicle" id="aiSendBtn" onclick="sendAiMessage()">
+            <i class="bi bi-send"></i>
+        </button>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let isRecording = false;
+        let recognition = null;
+        
+        function toggleAiChat() {
+            const container = document.getElementById('aiChatContainer');
+            const btn = document.getElementById('aiToggleBtn');
+            container.classList.toggle('open');
+            btn.classList.toggle('active');
+        }
+        
+        function addMessage(text, isUser = false) {
+            const messagesDiv = document.getElementById('aiMessages');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `ai-message ${isUser ? 'user' : 'bot'}`;
+            msgDiv.textContent = text;
+            messagesDiv.appendChild(msgDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        async function sendAiMessage() {
+            const input = document.getElementById('aiInput');
+            const message = input.value.trim();
+            if (!message) return;
+            
+            addMessage(message, true);
+            input.value = '';
+            
+            // Show typing indicator
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'ai-message bot';
+            typingDiv.innerHTML = '<i class="bi bi-three-dots"></i> Thinking...';
+            document.getElementById('aiMessages').appendChild(typingDiv);
+            
+            try {
+                const response = await fetch('/AiChat?handler=SendMessage', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                    },
+                    body: JSON.stringify({ message: message })
+                });
+                
+                const data = await response.json();
+                typingDiv.remove();
+                addMessage(data.response);
+                
+                // If there's an action, execute it
+                if (data.action) {
+                    executeAiAction(data.action, data.data);
+                }
+            } catch (error) {
+                typingDiv.remove();
+                addMessage('Sorry, I encountered an error. Please try again.');
+            }
+        }
+        
+        function executeAiAction(action, data) {
+            switch (action) {
+                case 'createCharacter':
+                    window.location.href = `/Characters/Create?campaignId=${data.campaignId}&name=${encodeURIComponent(data.name)}&race=${encodeURIComponent(data.race)}&class=${encodeURIComponent(data.class)}`;
+                    break;
+                case 'createLocation':
+                    window.location.href = `/Locations/Create?campaignId=${data.campaignId}&name=${encodeURIComponent(data.name)}`;
+                    break;
+                case 'navigate':
+                    window.location.href = data.url;
+                    break;
+            }
+        }
+        
+        function toggleVoice() {
+            const voiceBtn = document.getElementById('voiceBtn');
+            
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                alert('Speech recognition is not supported in your browser. Try Chrome.');
+                return;
+            }
+            
+            if (isRecording) {
+                recognition.stop();
+                voiceBtn.classList.remove('recording');
+                isRecording = false;
+                return;
+            }
+            
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                document.getElementById('aiInput').value = transcript;
+            };
+            
+            recognition.onend = () => {
+                voiceBtn.classList.remove('recording');
+                isRecording = false;
+            };
+            
+            recognition.start();
+            voiceBtn.classList.add('recording');
+            isRecording = true;
+        }
+    </script>
+}
