@@ -52,6 +52,13 @@ namespace ChroniclerWeb.Pages.Account
 
             if (result.Succeeded)
             {
+                // Get user's preferred language and pass it as query parameter
+                var user = await _signInManager.UserManager.FindByEmailAsync(Input.Email);
+                if (user != null && !string.IsNullOrEmpty(user.PreferredLanguage) && user.PreferredLanguage != "en")
+                {
+                    return LocalRedirect(returnUrl + "?lang=" + user.PreferredLanguage);
+                }
+
                 return LocalRedirect(returnUrl);
             }
 
@@ -59,12 +66,6 @@ namespace ChroniclerWeb.Pages.Account
             return Page();
         }
 
-        public IActionResult OnPostExternalLogin(string provider, string? returnUrl = null)
-        {
-            returnUrl ??= Url.Content("~/Dashboard");
-            var redirectUrl = Url.Page("/Account/ExternalLoginCallback", new { returnUrl });
-            var properties = _signInManager.ConfigureExternalAuthenticationProperties(provider, redirectUrl);
-            return Challenge(properties, provider);
-        }
+     
     }
 }

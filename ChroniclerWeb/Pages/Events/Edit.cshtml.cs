@@ -25,6 +25,12 @@ namespace ChroniclerWeb.Pages.Events
         [BindProperty]
         public Event Event { get; set; } = null!;
 
+        [BindProperty]
+        public IFormFile? ImageFile { get; set; }
+
+        [BindProperty]
+        public bool RemoveImage { get; set; }
+
         public List<Session> AvailableSessions { get; set; } = new();
 
         public async Task<IActionResult> OnGetAsync(int id)
@@ -49,6 +55,7 @@ namespace ChroniclerWeb.Pages.Events
                 return RedirectToPage("/Account/AccessDenied");
 
             ModelState.Remove("Event.Campaign");
+            ModelState.Remove("ImageFile");
 
             if (!ModelState.IsValid)
             {
@@ -64,6 +71,23 @@ namespace ChroniclerWeb.Pages.Events
             existing.EventDate = Event.EventDate;
             existing.IsKeyEvent = Event.IsKeyEvent;
             existing.SessionId = Event.SessionId;
+
+            // Handle image removal
+            if (RemoveImage)
+            {
+                existing.ImageData = null;
+                existing.ImageContentType = null;
+                existing.ImageUrl = null;
+            }
+
+            // Handle new image upload
+            if (ImageFile != null && ImageFile.Length > 0)
+            {
+                using var ms = new MemoryStream();
+                await ImageFile.CopyToAsync(ms);
+                existing.ImageData = Convert.ToBase64String(ms.ToArray());
+                existing.ImageContentType = ImageFile.ContentType;
+            }
 
             await _context.SaveChangesAsync();
 

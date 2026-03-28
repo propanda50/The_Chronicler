@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 
-
 namespace ChroniclerWeb.Pages.Campaigns
 {
     public class DeleteModel : PageModel

@@ -1,18 +1,17 @@
 ﻿using ChroniclerWeb.Data;
 using ChroniclerWeb.Models;
 using ChroniclerWeb.Services.AudioTranscription;
+using Microsoft.EntityFrameworkCore;
 
 namespace ChroniclerWeb.Services.FileUpload
 {
     public class FileUploadService : IFileUploadService
     {
         private readonly ApplicationDbContext _context;
-        private readonly IAudioTranscriptionService _audioTranscriptionService;
 
-        public FileUploadService(ApplicationDbContext context, IAudioTranscriptionService audioTranscriptionService)
+        public FileUploadService(ApplicationDbContext context)
         {
             _context = context;
-            _audioTranscriptionService = audioTranscriptionService;
         }
 
         public async Task<UploadedFile> UploadFileAsync(
@@ -21,30 +20,37 @@ namespace ChroniclerWeb.Services.FileUpload
             int? campaignId = null,
             int? characterId = null,
             int? locationId = null,
-            FileType fileType = FileType.Other)
+            int? eventId = null,
+            int? sessionId = null,
+            int? forumPostId = null,
+            FileType fileType = FileType.Other,
+            string? description = null)
         {
             using var memoryStream = new MemoryStream();
             await file.CopyToAsync(memoryStream);
-            var fileData = Convert.ToBase64String(memoryStream.ToArray());
+            var base64 = Convert.ToBase64String(memoryStream.ToArray());
 
             var uploadedFile = new UploadedFile
             {
                 FileName = file.FileName,
                 ContentType = file.ContentType,
                 FileSize = file.Length,
-                FileData = fileData,
-                Url = $"data:{file.ContentType};base64,{fileData}",
+                FileData = base64,
+                Url = $"data:{file.ContentType};base64,{base64}",
                 Type = fileType,
+                Description = description,
                 UploadedById = userId,
                 CampaignId = campaignId,
                 CharacterId = characterId,
                 LocationId = locationId,
+                EventId = eventId,
+                SessionId = sessionId,
+                ForumPostId = forumPostId,
                 UploadedAt = DateTime.UtcNow
             };
 
             _context.UploadedFiles.Add(uploadedFile);
             await _context.SaveChangesAsync();
-
             return uploadedFile;
         }
 
@@ -66,18 +72,25 @@ namespace ChroniclerWeb.Services.FileUpload
 
         public async Task<IEnumerable<UploadedFile>> GetFilesByCampaignAsync(int campaignId)
         {
-            return await Task.FromResult(_context.UploadedFiles
+            return await _context.UploadedFiles
+                .Include(f => f.UploadedBy)
+                .Include(f => f.Character)
+                .Include(f => f.Location)
+                .Include(f => f.Event)
+                .Include(f => f.Session)
+                .Include(f => f.ForumPost)
                 .Where(f => f.CampaignId == campaignId)
                 .OrderByDescending(f => f.UploadedAt)
-                .AsEnumerable());
+                .ToListAsync();
         }
 
         public async Task<IEnumerable<UploadedFile>> GetFilesByCharacterAsync(int characterId)
         {
-            return await Task.FromResult(_context.UploadedFiles
+            return await _context.UploadedFiles
+                .Include(f => f.UploadedBy)
                 .Where(f => f.CharacterId == characterId)
                 .OrderByDescending(f => f.UploadedAt)
-                .AsEnumerable());
+                .ToListAsync();
         }
     }
 }

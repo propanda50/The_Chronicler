@@ -4,89 +4,53 @@
     ViewData["Title"] = "New Forum Post";
 }
 
-<div class="page-header">
-    <h2><i class="bi bi-chat-square-plus me-2"></i>New Forum Post</h2>
-    <small class="text-muted">
-        <a asp-page="/Forum/Index" asp-route-campaignId="@Model.CampaignId" class="entity-link text-info">Back to Forum</a>
-    </small>
-</div>
-
-<div class="row justify-content-center">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-body p-4">
-                <form method="post" enctype="multipart/form-data" id="postForm">
-                    <input type="hidden" asp-for="CampaignId" />
-                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
-
-                    <div class="mb-3">
-                        <label asp-for="Post.Title" class="form-label">Title</label>
-                        <input asp-for="Post.Title" class="form-control" placeholder="What's on your mind?" />
-                        <span asp-validation-for="Post.Title" class="text-danger"></span>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Category</label>
-                        <select asp-for="Post.Category" class="form-select">
-                            <option value="0">General</option>
-                            <option value="1">Looking for Group</option>
-                            <option value="2">Recruitment</option>
-                            <option value="3">Tips & Help</option>
-                            <option value="4">Discussion</option>
-                        </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Attachments</label>
-                        <div class="file-upload-area" id="fileDropZone">
-                            <i class="bi bi-cloud-arrow-up" style="font-size: 2rem; color: var(--chr-text-muted);"></i>
-                            <p class="mt-2 mb-1">Drag & drop files here, or click to browse</p>
-                            <small class="text-muted">Supports: images, audio (.mp3, .wav), text (.txt, .md, .pdf)</small>
-                            <input type="file" class="form-control d-none" id="fileInput" name="Files" multiple accept="image/*,audio/*,.txt,.md,.pdf" />
-                        </div>
-                        <div id="fileList" class="mt-2"></div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label asp-for="Post.Content" class="form-label">Content</label>
-                        <div class="input-group">
-                            <textarea asp-for="Post.Content" class="form-control" rows="8" id="postContent" placeholder="Share your thoughts..."></textarea>
-                            <button type="button" class="btn btn-outline-secondary" onclick="toggleVoiceInput()" title="Voice Input" style="border-radius: 0;">
-                                <i class="bi bi-mic" id="voiceIcon"></i>
-                            </button>
-                        </div>
-                        <span asp-validation-for="Post.Content" class="text-danger"></span>
-                        <div id="voiceStatus" class="text-muted small mt-1" style="display: none;">
-                            <i class="bi bi-record-circle text-danger"></i> Listening...
-                        </div>
-                    </div>
-
-                    <!-- Transcript Section -->
-                    <div class="mb-3" id="transcriptSection" style="display: none;">
-                        <label class="form-label"><i class="bi bi-text-left me-1"></i>Transcript</label>
-                        <div class="transcript-preview bg-chr-surface p-3 rounded" id="transcriptPreview" style="border: 1px solid var(--chr-border);">
-                            <span class="text-muted">Your transcript will appear here...</span>
-                        </div>
-                        <button type="button" class="btn btn-sm btn-outline-secondary mt-2" onclick="clearTranscript()">
-                            <i class="bi bi-trash me-1"></i>Clear Transcript
-                        </button>
-                    </div>
-
-                    <div class="d-flex justify-content-between">
-                        <a asp-page="/Forum/Index" asp-route-campaignId="@Model.CampaignId" class="btn btn-outline-secondary">
-                            <i class="bi bi-arrow-left me-1"></i>Cancel
-                        </a>
-                        <button type="submit" class="btn btn-chronicle">
-                            <i class="bi bi-check-lg me-1"></i>Create Post
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
 <style>
+    @@keyframes spin { to { transform: rotate(360deg); } }
+    .step-indicator {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 30px;
+    }
+    .step {
+        padding: 10px 25px;
+        background: var(--chr-bg-surface);
+        border: 1px solid var(--chr-border);
+        border-radius: 20px;
+        margin: 0 5px;
+        color: var(--chr-text-muted);
+        font-size: 0.9rem;
+    }
+    .step.active {
+        background: var(--chr-primary);
+        color: white;
+        border-color: var(--chr-primary);
+    }
+    .step.completed {
+        background: rgba(16, 185, 129, 0.2);
+        color: var(--chr-green);
+        border-color: var(--chr-green);
+    }
+    .loading-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.8);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+    }
+    .loading-overlay.hidden {
+        display: none;
+    }
+    .spinner {
+        width: 60px;
+        height: 60px;
+        border: 5px solid var(--chr-border);
+        border-top-color: var(--chr-gold);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
     .file-upload-area {
         border: 2px dashed var(--chr-border);
         border-radius: 12px;
@@ -96,17 +60,14 @@
         transition: all 0.3s ease;
         background: var(--chr-bg-surface);
     }
-
     .file-upload-area:hover {
         border-color: var(--chr-gold);
         background: rgba(212, 168, 67, 0.05);
     }
-
     .file-upload-area.dragover {
         border-color: var(--chr-gold);
         background: rgba(212, 168, 67, 0.1);
     }
-
     .file-item {
         display: flex;
         align-items: center;
@@ -117,35 +78,256 @@
         border-radius: 8px;
         margin-bottom: 8px;
     }
-
     .file-item i {
         font-size: 1.5rem;
         color: var(--chr-gold);
     }
-
     .file-item .file-name {
         flex: 1;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
     }
-
     .file-item .remove-file {
         cursor: pointer;
         color: var(--chr-text-muted);
     }
-
     .file-item .remove-file:hover {
         color: #ef4444;
     }
 </style>
 
+<div class="page-header">
+    <h2><i class="bi bi-chat-square-plus me-2"></i>New Forum Post</h2>
+    <small class="text-muted">
+        <a asp-page="/Forum/Index" asp-route-campaignId="@Model.CampaignId" class="entity-link text-info">Back to Forum</a>
+    </small>
+</div>
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle me-1"></i>@TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- Step Indicator -->
+<div class="step-indicator">
+    <div class="step active" id="step1Indicator">1. Content</div>
+    <div class="step" id="step2Indicator">2. Title</div>
+</div>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay hidden" id="loadingOverlay">
+    <div class="spinner mb-3"></div>
+    <p class="text-light" id="loadingText">Generating...</p>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body p-4">
+                <form method="post" enctype="multipart/form-data" id="postForm">
+                    <input type="hidden" asp-for="CampaignId" />
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <!-- STEP 1: Content -->
+                    <div id="step1">
+                        <div class="mb-3">
+                            <label class="form-label">Category</label>
+                            <select asp-for="Post.Category" class="form-select">
+                                <option value="0">General</option>
+                                <option value="1">Looking for Group</option>
+                                <option value="2">Recruitment</option>
+                                <option value="3">Tips & Help</option>
+                                <option value="4">Discussion</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Attachments</label>
+                            <div class="file-upload-area" id="fileDropZone">
+                                <i class="bi bi-cloud-arrow-up" style="font-size: 2rem; color: var(--chr-text-muted);"></i>
+                                <p class="mt-2 mb-1">Drag & drop files here, or click to browse</p>
+                                <small class="text-muted">Supports: images, audio (.mp3, .wav), text (.txt, .md, .pdf)</small>
+                                <input type="file" class="form-control d-none" id="fileInput" name="Files" multiple accept="image/*,audio/*,.txt,.md,.pdf" />
+                            </div>
+                            <div id="fileList" class="mt-2"></div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Post.Content" class="form-label">Content</label>
+                            <div class="input-group">
+                                <textarea asp-for="Post.Content" class="form-control" rows="8" id="postContent" placeholder="Share your thoughts..."></textarea>
+                                <button type="button" class="btn btn-outline-secondary" onclick="toggleVoiceInput()" title="Voice Input" style="border-radius: 0;">
+                                    <i class="bi bi-mic" id="voiceIcon"></i>
+                                </button>
+                            </div>
+                            <span asp-validation-for="Post.Content" class="text-danger"></span>
+                            <div id="voiceStatus" class="text-muted small mt-1" style="display: none;">
+                                <i class="bi bi-record-circle text-danger"></i> Listening...
+                            </div>
+                        </div>
+
+                        <!-- Voice Transcription Language Selector -->
+                        <div class="mb-3">
+                            <label class="form-label"><i class="bi bi-translate me-1"></i>Voice Transcription Language</label>
+                            <div class="row g-2">
+                                <div class="col-md-8">
+                                    <select id="voiceLanguageSelect" class="form-select">
+                                        <option value="en-US">English (US)</option>
+                                        <option value="en-GB">English (UK)</option>
+                                        <option value="fr-FR">French</option>
+                                        <option value="de-DE">German</option>
+                                        <option value="es-ES">Spanish</option>
+                                        <option value="it-IT">Italian</option>
+                                        <option value="pt-PT">Portuguese</option>
+                                        <option value="pt-BR">Portuguese (Brazil)</option>
+                                        <option value="nl-NL">Dutch</option>
+                                        <option value="ru-RU">Russian</option>
+                                        <option value="ja-JP">Japanese</option>
+                                        <option value="zh-CN">Chinese (Simplified)</option>
+                                        <option value="zh-TW">Chinese (Traditional)</option>
+                                        <option value="ko-KR">Korean</option>
+                                        <option value="ar-SA">Arabic</option>
+                                        <option value="tr-TR">Turkish</option>
+                                        <option value="pl-PL">Polish</option>
+                                        <option value="cs-CZ">Czech</option>
+                                        <option value="da-DK">Danish</option>
+                                        <option value="el-GR">Greek</option>
+                                        <option value="fi-FI">Finnish</option>
+                                        <option value="he-IL">Hebrew</option>
+                                        <option value="hi-IN">Hindi</option>
+                                        <option value="hu-HU">Hungarian</option>
+                                        <option value="id-ID">Indonesian</option>
+                                        <option value="ms-MY">Malay</option>
+                                        <option value="nb-NO">Norwegian</option>
+                                        <option value="ro-RO">Romanian</option>
+                                        <option value="sv-SE">Swedish</option>
+                                        <option value="th-TH">Thai</option>
+                                        <option value="uk-UA">Ukrainian</option>
+                                        <option value="vi-VN">Vietnamese</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <button type="button" class="btn btn-outline-secondary w-100" onclick="startVoiceTranscription()" id="voiceTranscriptBtn">
+                                        <i class="bi bi-mic-fill me-1"></i>Start Transcription
+                                    </button>
+                                </div>
+                            </div>
+                            <small class="text-muted">Select your language and click "Start Transcription" before speaking</small>
+                        </div>
+
+                        <!-- Transcript Section -->
+                        <div class="mb-3" id="transcriptSection" style="display: none;">
+                            <label class="form-label"><i class="bi bi-text-left me-1"></i>Transcript</label>
+                            <div class="transcript-preview bg-chr-surface p-3 rounded" id="transcriptPreview" style="border: 1px solid var(--chr-border);">
+                                <span class="text-muted">Your transcript will appear here...</span>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-secondary mt-2" onclick="clearTranscript()">
+                                <i class="bi bi-trash me-1"></i>Clear Transcript
+                            </button>
+                        </div>
+
+                        <div class="text-end">
+                            <button type="button" class="btn btn-chronicle" onclick="goToStep2()">
+                                Next <i class="bi bi-arrow-right ms-1"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- STEP 2: Title -->
+                    <div id="step2" style="display: none;">
+                        <div class="mb-3">
+                            <label asp-for="Post.Title" class="form-label">Title</label>
+                            <div class="input-group">
+                                <input asp-for="Post.Title" class="form-control" placeholder="Enter a title for your post..." id="postTitle" />
+                                <button type="button" class="btn btn-chronicle" onclick="generateTitle()" id="generateTitleBtn">
+                                    <i class="bi bi-magic me-1"></i> Generate with AI
+                                </button>
+                            </div>
+                            <small class="text-muted">AI generates a title based on your content and attachments</small>
+                            <span asp-validation-for="Post.Title" class="text-danger"></span>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-outline-secondary" onclick="goToStep1()">
+                                <i class="bi bi-arrow-left me-1"></i> Previous
+                            </button>
+                            <button type="submit" class="btn btn-chronicle">
+                                <i class="bi bi-check-lg me-1"></i>Create Post
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
+        // Get current language for AI prompts
+        const LANGUAGE_NAMES = {
+            'en': 'English', 'fr': 'French', 'nl': 'Dutch', 'de': 'German',
+            'es': 'Spanish', 'it': 'Italian', 'pt': 'Portuguese', 'pl': 'Polish',
+            'ru': 'Russian', 'ja': 'Japanese', 'zh': 'Chinese', 'ko': 'Korean',
+            'ar': 'Arabic', 'tr': 'Turkish', 'cs': 'Czech', 'da': 'Danish',
+            'el': 'Greek', 'fi': 'Finnish', 'he': 'Hebrew', 'hi': 'Hindi',
+            'hu': 'Hungarian', 'id': 'Indonesian', 'ms': 'Malay', 'no': 'Norwegian',
+            'ro': 'Romanian', 'sv': 'Swedish', 'th': 'Thai', 'uk': 'Ukrainian',
+            'vi': 'Vietnamese'
+        };
+
+        function getCurrentLanguage() {
+            const lang = localStorage.getItem('preferredLanguage') || document.documentElement.lang || 'en';
+            return LANGUAGE_NAMES[lang.split('-')[0]] || 'English';
+        }
+
         let recognition;
         let isListening = false;
         let transcriptText = '';
         let selectedFiles = [];
+
+        // Step Navigation
+        function goToStep1() {
+            document.getElementById('step1').style.display = 'block';
+            document.getElementById('step2').style.display = 'none';
+            document.getElementById('step1Indicator').className = 'step active';
+            document.getElementById('step2Indicator').className = 'step';
+        }
+
+        function goToStep2() {
+            // Validate content
+            const content = document.getElementById('postContent').value;
+            if (!content.trim()) {
+                alert('Please enter some content for your post.');
+                return;
+            }
+
+            // Store content for translation
+            const currentLang = localStorage.getItem('preferredLanguage') || 'en';
+            if (typeof TranslationService !== 'undefined' && content) {
+                TranslationService.storeOriginal('forumContent', content, currentLang);
+            }
+
+            document.getElementById('step1').style.display = 'none';
+            document.getElementById('step2').style.display = 'block';
+            document.getElementById('step1Indicator').className = 'step completed';
+            document.getElementById('step2Indicator').className = 'step active';
+        }
+
+        // Generate title with random generator
+        function generateTitle() {
+            var topics = ['Help', 'Question', 'Discussion', 'Tips', 'Guide', 'Story', 'Idea', 'Lore', 'Build', 'Strategy', 'Review', 'Theory'];
+            var themes = ['Needed', 'Discussion', 'Question', 'Tips', 'Share', 'New', 'Old', 'Epic'];
+            var pick = function(a) { return a[Math.floor(Math.random()*a.length)]; };
+            var title;
+            if (Math.random() > 0.5) title = pick(topics) + ': ' + pick(themes);
+            else title = pick(topics) + ' ' + pick(themes);
+            document.getElementById('postTitle').value = title;
+        }
 
         // File upload handling
         const fileDropZone = document.getElementById('fileDropZone');
@@ -193,7 +375,6 @@
             `;
             fileList.appendChild(fileItem);
 
-            // If it's an audio file, offer transcription
             if (file.type.startsWith('audio/')) {
                 transcribeAudio(file);
             }
@@ -228,8 +409,11 @@
             const formData = new FormData();
             formData.append('audioFile', file);
 
+            const voiceLanguageSelect = document.getElementById('voiceLanguageSelect');
+            formData.append('language', voiceLanguageSelect?.value || 'auto');
+
             try {
-                const response = await fetch('/Forum/TranscribeAudio', {
+                const response = await fetch('/Forum/Create?handler=TranscribeAudio', {
                     method: 'POST',
                     body: formData
                 });
@@ -250,7 +434,6 @@
             document.getElementById('transcriptSection').style.display = 'block';
             document.getElementById('transcriptPreview').innerHTML = `<pre style="white-space: pre-wrap; margin: 0;">${escapeHtml(transcriptText)}</pre>`;
             
-            // Append to content
             const content = document.getElementById('postContent');
             content.value = (content.value ? content.value + '\n\n' : '') + '[Transcript]\n' + text;
         }
@@ -267,10 +450,56 @@
             return div.innerHTML;
         }
 
-        // Voice input handling
+        // Voice input
         function toggleVoiceInput() {
             if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-                alert('Voice input is not supported in your browser. Please use Chrome or Edge.');
+                alert('Voice input is not supported in your browser.');
+                return;
+            }
+
+            if (isListening) {
+                stopListening();
+            } else {
+                startListening();
+            }
+        }
+
+        // Update button text when language changes
+        document.addEventListener('DOMContentLoaded', function() {
+            const langSelect = document.getElementById('voiceLanguageSelect');
+            if (langSelect) {
+                // Set default language based on localStorage
+                let lang = localStorage.getItem('preferredLanguage') || 'en';
+                const langMap = {
+                    'en': 'en-US', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES',
+                    'it': 'it-IT', 'pt': 'pt-PT', 'nl': 'nl-NL', 'ru': 'ru-RU',
+                    'zh': 'zh-CN', 'ja': 'ja-JP', 'ko': 'ko-KR', 'ar': 'ar-SA'
+                };
+                const defaultLang = langMap[lang.split('-')[0]] || 'en-US';
+                langSelect.value = defaultLang;
+            }
+        });
+
+        function getSpeechLanguage() {
+            // Get language from the dropdown selector
+            const select = document.getElementById('voiceLanguageSelect');
+            if (select && select.value) {
+                return select.value;
+            }
+            // Fallback to localStorage
+            let lang = localStorage.getItem('preferredLanguage') || 'en';
+            const langMap = {
+                'en': 'en-US', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES',
+                'it': 'it-IT', 'pt': 'pt-PT', 'nl': 'nl-NL', 'ru': 'ru-RU',
+                'zh': 'zh-CN', 'ja': 'ja-JP', 'ko': 'ko-KR', 'ar': 'ar-SA'
+            };
+            return langMap[lang.split('-')[0]] || 'en-US';
+        }
+
+        function startVoiceTranscription() {
+            // Set the selected language before starting
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                alert('Voice input is not supported in your browser.');
                 return;
             }
 
@@ -283,60 +512,86 @@
 
         function startListening() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            
+            // Always create a new recognition instance to ensure language is updated
+            if (recognition) {
+                try { recognition.stop(); } catch (e) {}
+            }
             recognition = new SpeechRecognition();
+            
             recognition.continuous = true;
             recognition.interimResults = true;
-            recognition.lang = 'en-US';
+            recognition.maxAlternatives = 1;
+            recognition.lang = getSpeechLanguage();
+            recognition.shouldRestart = true;
+
+            let restartAttempts = 0;
+            const maxRestartAttempts = 10;
 
             recognition.onstart = () => {
                 isListening = true;
+                restartAttempts = 0;
                 document.getElementById('voiceIcon').classList.add('text-danger');
                 document.getElementById('voiceStatus').style.display = 'block';
+                document.getElementById('voiceStatus').innerHTML = '<i class="bi bi-record-circle text-danger"></i> 🎤 Listening...';
             };
 
             recognition.onresult = (event) => {
-                let interimTranscript = '';
                 let finalTranscript = '';
 
                 for (let i = event.resultIndex; i < event.results.length; i++) {
                     const transcript = event.results[i][0].transcript;
                     if (event.results[i].isFinal) {
-                        finalTranscript += transcript;
-                    } else {
-                        interimTranscript += transcript;
+                        finalTranscript += transcript + ' ';
                     }
                 }
 
                 if (finalTranscript) {
                     const content = document.getElementById('postContent');
-                    content.value += (content.value ? ' ' : '') + finalTranscript;
-                }
-
-                if (interimTranscript) {
-                    document.getElementById('voiceStatus').textContent = 'Listening: ' + interimTranscript;
+                    content.value += finalTranscript;
                 }
             };
 
             recognition.onerror = (event) => {
                 console.error('Speech recognition error:', event.error);
-                stopListening();
             };
 
             recognition.onend = () => {
-                stopListening();
+                if (isListening && recognition.shouldRestart && restartAttempts < maxRestartAttempts) {
+                    restartAttempts++;
+                    try {
+                        setTimeout(() => {
+                            if (isListening) recognition.start();
+                        }, 100);
+                    } catch (e) {}
+                }
             };
 
-            recognition.start();
+            try {
+                recognition.start();
+            } catch (e) {
+                console.error('Failed to start recognition:', e);
+            }
         }
 
         function stopListening() {
-            if (recognition) {
-                recognition.stop();
-            }
             isListening = false;
+            if (recognition) {
+                recognition.shouldRestart = false;
+                try { recognition.stop(); } catch (e) {}
+            }
             document.getElementById('voiceIcon').classList.remove('text-danger');
             document.getElementById('voiceStatus').style.display = 'none';
-            document.getElementById('voiceStatus').innerHTML = '<i class="bi bi-record-circle text-danger"></i> Listening...';
+        }
+
+        // Loading
+        function showLoading(text) {
+            document.getElementById('loadingText').textContent = text;
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.add('hidden');
         }
     </script>
 }

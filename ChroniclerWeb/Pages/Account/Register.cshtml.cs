@@ -1,10 +1,11 @@
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
-using System.ComponentModel.DataAnnotations;
 using ChroniclerWeb.Data;
 using ChroniclerWeb.Models;
 using ChroniclerWeb.Services;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 
 namespace ChroniclerWeb.Pages.Account
 {
@@ -26,6 +27,11 @@ namespace ChroniclerWeb.Pages.Account
 
         public class InputModel
         {
+            [Required, MaxLength(50)]
+            [Display(Name = "Pseudo")]
+            [RegularExpression(@"^[a-zA-Z0-9_-]+$", ErrorMessage = "Pseudo can only contain letters, numbers, underscores and hyphens.")]
+            public string Pseudo { get; set; } = string.Empty;
+
             [Required, MaxLength(100)]
             [Display(Name = "Display Name")]
             public string DisplayName { get; set; } = string.Empty;
@@ -55,24 +61,29 @@ namespace ChroniclerWeb.Pages.Account
 
         public void OnGet() { }
 
-        public IActionResult OnPostExternalLogin(string provider, string? returnUrl = null)
-        {
-            returnUrl ??= Url.Content("~/Dashboard");
-            var redirectUrl = Url.Page("/Account/ExternalLoginCallback", new { returnUrl });
-            var properties = _signInManager.ConfigureExternalAuthenticationProperties(provider, redirectUrl);
-            return Challenge(properties, provider);
-        }
-
         public async Task<IActionResult> OnPostAsync()
         {
             if (!ModelState.IsValid)
                 return Page();
 
+            var normalizedPseudo = Input.Pseudo.Trim().ToUpperInvariant();
+
+            var pseudoExists = await _userManager.Users
+                .AnyAsync(u => u.NormalizedPseudo == normalizedPseudo);
+
+            if (pseudoExists)
+            {
+                ModelState.AddModelError("Input.Pseudo", "This pseudo is already taken.");
+                return Page();
+            }
+
             var user = new ApplicationUser
             {
                 UserName = Input.Email,
                 Email = Input.Email,
-                DisplayName = Input.DisplayName,
+                Pseudo = Input.Pseudo.Trim(),
+                NormalizedPseudo = normalizedPseudo,
+                DisplayName = Input.DisplayName.Trim(),
                 PreferredLanguage = Input.PreferredLanguage,
                 PlayStyle = Input.PlayStyle,
                 ExperienceLevel = Input.ExperienceLevel,
@@ -99,10 +110,8 @@ namespace ChroniclerWeb.Pages.Account
                 await _userManager.AddToRoleAsync(user, "Player");
                 await _signInManager.SignInAsync(user, isPersistent: false);
 
-                var langName = Input.PreferredLanguage switch { "nl" => "Dutch", "fr" => "French", _ => "English" };
-                TempData["Success"] = $"Welcome, {user.DisplayName}! Language set to {langName}. Change it anytime in Settings.";
-
-                return RedirectToPage("/Dashboard/Index");
+                TempData["Success"] = $"Welcome, {user.DisplayName}!";
+                return RedirectToPage("/Dashboard/Index", new { lang = user.PreferredLanguage });
             }
 
             foreach (var error in result.Errors)

@@ -15,5 +15,6 @@ namespace ChroniclerWeb.Services
         Task<CampaignRole?> GetUserRole(int campaignId, string userId);
         Task<bool> CanUserEdit(int campaignId, string userId);
         Task<bool> CanUserAddNotes(int campaignId, string userId);
+        Task<bool> CanUserAccess(int campaignId, string userId);
     }
 }

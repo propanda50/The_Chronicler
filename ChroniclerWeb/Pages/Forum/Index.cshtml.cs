@@ -7,7 +7,6 @@ using ChroniclerWeb.Data;
 using ChroniclerWeb.Models;
 using ChroniclerWeb.Services;
 
-
 namespace ChroniclerWeb.Pages.Forum
 {
     [Authorize]

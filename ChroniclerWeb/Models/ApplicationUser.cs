@@ -26,6 +26,14 @@ namespace ChroniclerWeb.Models
 
     public class ApplicationUser : IdentityUser
     {
+        [Required]
+        [MaxLength(50)]
+        public string Pseudo { get; set; } = string.Empty;
+
+        [Required]
+        [MaxLength(50)]
+        public string NormalizedPseudo { get; set; } = string.Empty;
+
         [MaxLength(100)]
         public string DisplayName { get; set; } = string.Empty;
 
@@ -37,6 +45,8 @@ namespace ChroniclerWeb.Models
         public string? AvatarContentType { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
         [MaxLength(10)]
         public string PreferredLanguage { get; set; } = "en";

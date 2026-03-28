@@ -47,6 +47,9 @@ namespace ChroniclerWeb.Pages.Sessions
             return Page();
         }
 
+        [BindProperty]
+        public IFormFile? ImageFile { get; set; }
+
         public async Task<IActionResult> OnPostAsync()
         {
             var userId = _userManager.GetUserId(User)!;
@@ -54,6 +57,7 @@ namespace ChroniclerWeb.Pages.Sessions
                 return RedirectToPage("/Account/AccessDenied");
 
             ModelState.Remove("Session.Campaign");
+            ModelState.Remove("ImageFile");
 
             if (!ModelState.IsValid)
             {
@@ -63,6 +67,15 @@ namespace ChroniclerWeb.Pages.Sessions
 
             Session.CreatedAt = DateTime.UtcNow;
             Session.UpdatedAt = DateTime.UtcNow;
+
+            // Handle image upload
+            if (ImageFile != null && ImageFile.Length > 0)
+            {
+                using var ms = new MemoryStream();
+                await ImageFile.CopyToAsync(ms);
+                Session.ImageData = Convert.ToBase64String(ms.ToArray());
+                Session.ImageContentType = ImageFile.ContentType;
+            }
 
             _context.Sessions.Add(Session);
             await _context.SaveChangesAsync();

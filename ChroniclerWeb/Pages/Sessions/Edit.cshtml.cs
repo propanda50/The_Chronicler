@@ -31,9 +31,17 @@ namespace ChroniclerWeb.Pages.Sessions
         [BindProperty]
         public List<int> SelectedLocationIds { get; set; } = new();
 
+        [BindProperty]
+        public IFormFile? ImageFile { get; set; }
+
+        [BindProperty]
+        public bool RemoveImage { get; set; }
+
         public string CampaignName { get; set; } = string.Empty;
         public List<Character> AvailableCharacters { get; set; } = new();
         public List<Location> AvailableLocations { get; set; } = new();
+        public bool IsGameMaster { get; set; }
+        public bool IsNotesOnly { get; set; }
 
         public async Task<IActionResult> OnGetAsync(int id)
         {
@@ -46,8 +54,14 @@ namespace ChroniclerWeb.Pages.Sessions
 
             if (session == null) return NotFound();
 
-            if (!await _campaignService.CanUserEdit(session.CampaignId, userId))
+            var isGM = await _campaignService.CanUserEdit(session.CampaignId, userId);
+            var canAddNotes = await _campaignService.CanUserAddNotes(session.CampaignId, userId);
+
+            if (!isGM && !canAddNotes)
                 return RedirectToPage("/Account/AccessDenied");
+
+            IsGameMaster = isGM;
+            IsNotesOnly = !isGM && canAddNotes;
 
             Session = session;
             SelectedCharacterIds = session.SessionCharacters.Select(sc => sc.CharacterId).ToList();
@@ -60,16 +74,12 @@ namespace ChroniclerWeb.Pages.Sessions
         public async Task<IActionResult> OnPostAsync()
         {
             var userId = _userManager.GetUserId(User)!;
-            if (!await _campaignService.CanUserEdit(Session.CampaignId, userId))
+
+            var isGM = await _campaignService.CanUserEdit(Session.CampaignId, userId);
+            var canAddNotes = await _campaignService.CanUserAddNotes(Session.CampaignId, userId);
+
+            if (!isGM && !canAddNotes)
                 return RedirectToPage("/Account/AccessDenied");
-
-            ModelState.Remove("Session.Campaign");
-
-            if (!ModelState.IsValid)
-            {
-                await LoadFormData(Session.CampaignId);
-                return Page();
-            }
 
             var existing = await _context.Sessions
                 .Include(s => s.SessionCharacters)
@@ -78,30 +88,57 @@ namespace ChroniclerWeb.Pages.Sessions
 
             if (existing == null) return NotFound();
 
-            existing.Title = Session.Title;
-            existing.SessionNumber = Session.SessionNumber;
-            existing.SessionDate = Session.SessionDate;
-            existing.Summary = Session.Summary;
-            existing.Notes = Session.Notes;
-            existing.UpdatedAt = DateTime.UtcNow;
-
-            // Update character tags
-            _context.SessionCharacters.RemoveRange(existing.SessionCharacters);
-            foreach (var charId in SelectedCharacterIds)
+            if (isGM)
             {
-                _context.SessionCharacters.Add(new SessionCharacter { SessionId = existing.Id, CharacterId = charId });
+                // FULL UPDATE - GameMaster only
+                existing.Title = Session.Title;
+                existing.SessionNumber = Session.SessionNumber;
+                existing.SessionDate = Session.SessionDate;
+                existing.Summary = Session.Summary;
+                existing.Notes = Session.Notes;
+                existing.UpdatedAt = DateTime.UtcNow;
+
+                // Handle image removal
+                if (RemoveImage)
+                {
+                    existing.ImageData = null;
+                    existing.ImageContentType = null;
+                    existing.ImageUrl = null;
+                }
+
+                // Handle new image upload
+                if (ImageFile != null && ImageFile.Length > 0)
+                {
+                    using var ms = new MemoryStream();
+                    await ImageFile.CopyToAsync(ms);
+                    existing.ImageData = Convert.ToBase64String(ms.ToArray());
+                    existing.ImageContentType = ImageFile.ContentType;
+                }
+
+                // Update character tags
+                _context.SessionCharacters.RemoveRange(existing.SessionCharacters);
+                foreach (var charId in SelectedCharacterIds)
+                {
+                    _context.SessionCharacters.Add(new SessionCharacter { SessionId = existing.Id, CharacterId = charId });
+                }
+
+                // Update location tags
+                _context.SessionLocations.RemoveRange(existing.SessionLocations);
+                foreach (var locId in SelectedLocationIds)
+                {
+                    _context.SessionLocations.Add(new SessionLocation { SessionId = existing.Id, LocationId = locId });
+                }
             }
-
-            // Update location tags
-            _context.SessionLocations.RemoveRange(existing.SessionLocations);
-            foreach (var locId in SelectedLocationIds)
+            else
             {
-                _context.SessionLocations.Add(new SessionLocation { SessionId = existing.Id, LocationId = locId });
+                // NOTES ONLY - CanAddNotes players
+                existing.Notes = Session.Notes;
+                existing.UpdatedAt = DateTime.UtcNow;
             }
 
             await _context.SaveChangesAsync();
 
-            TempData["Success"] = "Session updated!";
+            TempData["Success"] = isGM ? "Session updated!" : "Notes updated!";
             return RedirectToPage("/Sessions/Details", new { id = Session.Id });
         }
 

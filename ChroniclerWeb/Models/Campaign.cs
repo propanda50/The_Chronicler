@@ -41,6 +41,13 @@ namespace ChroniclerWeb.Models
 
         public string? LogoData { get; set; }
 
+        [MaxLength(500)]
+        public string? MapUrl { get; set; }
+
+        public string? MapData { get; set; }
+
+        public string? MapContentType { get; set; }
+
         public CampaignStatus Status { get; set; } = CampaignStatus.Active;
         public RecruitmentStatus RecruitmentStatus { get; set; } = RecruitmentStatus.Closed;
 

@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
-VisualStudioVersion = 18.4.11612.150 stable
+VisualStudioVersion = 18.4.11612.150
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChroniclerWeb", "ChroniclerWeb\ChroniclerWeb.csproj", "{136025C2-F2E2-44CB-8E96-B2C5DB7E9547}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TheChronicler.Web", "..\..\..\Downloads\TheChronicler.Web (12)\TheChronicler.Web\TheChronicler.Web.csproj", "{7ACBA72F-356E-AF2F-C6B5-744B61C25DD8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{136025C2-F2E2-44CB-8E96-B2C5DB7E9547}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{136025C2-F2E2-44CB-8E96-B2C5DB7E9547}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{136025C2-F2E2-44CB-8E96-B2C5DB7E9547}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7ACBA72F-356E-AF2F-C6B5-744B61C25DD8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7ACBA72F-356E-AF2F-C6B5-744B61C25DD8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7ACBA72F-356E-AF2F-C6B5-744B61C25DD8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7ACBA72F-356E-AF2F-C6B5-744B61C25DD8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -21,7 +21,12 @@
 
                     <div class="mb-3">
                         <label asp-for="Event.Title" class="form-label">Event Title</label>
-                        <input asp-for="Event.Title" class="form-control" placeholder="The Dragon Awakens" />
+                        <div class="input-group">
+                            <input asp-for="Event.Title" class="form-control" placeholder="The Dragon Awakens" id="EventTitle" />
+                            <button type="button" class="btn btn-outline-secondary" onclick="genEventName()">
+                                <i class="bi bi-shuffle"></i> <span data-t="Random">Random</span>
+                            </button>
+                        </div>
                         <span asp-validation-for="Event.Title" class="text-danger"></span>
                     </div>
 
@@ -44,7 +49,15 @@
 
                     <div class="mb-3">
                         <label asp-for="Event.Description" class="form-label">Description</label>
-                        <textarea asp-for="Event.Description" class="form-control" rows="4" placeholder="Describe what happened..."></textarea>
+                        <div class="d-flex gap-2 mb-2">
+                            <button type="button" class="btn btn-chronicle btn-sm" onclick="genEventDesc()">
+                                <i class="bi bi-magic me-1"></i> <span data-t="Generate Description">Generate Description</span>
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="genEventDesc()" id="regenEventDescBtn" style="display:none;">
+                                <i class="bi bi-arrow-clockwise me-1"></i> <span data-t="Regenerate">Regenerate</span>
+                            </button>
+                        </div>
+                        <textarea asp-for="Event.Description" class="form-control" rows="4" placeholder="Describe what happened..." id="EventDescription"></textarea>
                     </div>
 
                     <div class="mb-3 form-check">
@@ -55,12 +68,18 @@
                         <div class="text-muted small">Key events are highlighted in the timeline and campaign overview.</div>
                     </div>
 
+                    <div class="mb-3">
+                        <label class="form-label">Event Image (Optional)</label>
+                        <input type="file" name="ImageFile" class="form-control" accept="image/*" />
+                        <small class="text-muted">Upload an image for this event (PNG, JPG, WEBP)</small>
+                    </div>
+
                     <div class="d-flex justify-content-between">
                         <a asp-page="/Events/Index" asp-route-campaignId="@Model.CampaignId" class="btn btn-outline-secondary">
-                            <i class="bi bi-arrow-left me-1"></i>Cancel
+                            <i class="bi bi-arrow-left me-1"></i><span data-t="Cancel">Cancel</span>
                         </a>
                         <button type="submit" class="btn btn-chronicle">
-                            <i class="bi bi-check-lg me-1"></i>Create Event
+                            <i class="bi bi-check-lg me-1"></i><span data-t="New Event">New Event</span>
                         </button>
                     </div>
                 </form>
@@ -68,3 +87,36 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        (function(){
+            var D={
+                en:{types:['Festival','Ceremony','Battle','Ritual','Gathering','Council','Tournament','Market','Invasion','Alliance','Treaty','Celebration','Rebellion','Revolution','Eclipse','Storm','Cataclysm','Hunt','Expedition','Siege'],suffixes:['of Shadows','of Light','of Doom','of Hope','of Fire','of Ice','of Thunder','of War','of Peace','of Death','of Life','of Honor','of Glory','of the Ancients','of the Gods','of the Kings'],stories:['A grand celebration brings people from across the realm together. Merchants hawk their wares, performers entertain the crowds, and intrigue blooms in the shadows.','Tensions rise as representatives from rival factions gather for peace talks. The slightest provocation could spark open war.','An unnatural storm approaches, bringing with it strange creatures and darker omens. The locals look to the adventurers for protection.','The annual tournament draws warriors from every corner of the kingdom. Glory and honor await those brave enough to compete.','A sacred ritual must be performed under the light of the full moon. The consequences of failure would be catastrophic.']},
+                fr:{types:['Festival','Ceremonie','Bataille','Rituel','Rassemblement','Conseil','Tournoi','Marche','Invasion','Alliance','Traite','Celebration','Rebellion','Revolution','Eclipse','Tempete','Cataclysme','Chasse','Expedition','Siege'],suffixes:['d\'Ombre','de Lumiere','de Malheur','d\'Espoir','de Feu','de Glace','de Tonnerre','de Guerre','de Paix','de Mort','de Vie','d\'Honneur','de Gloire','des Anciens','des Dieux','des Rois'],stories:['Une grande celebration reunie des gens de tout le royaume. Les commercants vendent leurs marchandises, les artistes divertissent les foules.','Les tensions montent alors que les representants de factions rivales se reunissent pour des pourparlers de paix.','Une tempete anormale approche, apportant des creatures etranges et de plus sombres presages. Les habitants se tournent vers les aventuriers.']},
+                de:{types:['Festival','Zeremonie','Schlacht','Ritual','Versammlung','Rat','Turnier','Markt','Invasion','Allianz','Vertrag','Feier','Aufruhr','Revolution','Finsternis','Sturm','Katastrophe','Jagd','Expedition','Belagerung'],suffixes:['der Schatten','des Lichts','des Verderbens','der Hoffnung','des Feuers','des Eises','des Krieges','des Todes','des Lebens','der Alten','der Gotter'],stories:['Ein grobes Fest bringt Menschen aus dem gesamten Reich zusammen.','Die Spannungen steigen, wenn Vertreter rivalisierender Fraktionen zu Friedensgesprachen zusammentreffen.']},
+                es:{types:['Festival','Ceremonia','Batalla','Ritual','Reunion','Consejo','Torneo','Mercado','Invasion','Alianza','Tratado','Celebracion','Rebelion','Revolucion','Eclipse','Tormenta','Catastrofe','Caza','Expedicion','Asedio'],suffixes:['de Sombras','de Luz','de Perdicion','de Esperanza','de Fuego','de Hielo','de Guerra','de Muerte','de Vida','de Honor','de Gloria','de los Antiguos','de los Dioses','de los Reyes'],stories:['Una gran celebracion reune a personas de todo el reino. Los comerciantes venden sus productos, los artistas entretienen a las multitudes.','Las tensiones aumentan cuando representantes de facciones rivales se reunen para conversaciones de paz.']}
+            };
+            var lang=function(){return(localStorage.getItem('preferredLanguage')||'en').split('-')[0];};
+            var pick=function(a){return a[Math.floor(Math.random()*a.length)];};
+            var dict=function(){return D[lang()]||D.en;};
+
+            window.genEventName=function(){
+                var d=dict();
+                var r=Math.random();
+                var name;
+                if(r<0.5) name=pick(d.types)+' '+pick(d.suffixes);
+                else name=pick(d.types);
+                document.getElementById('EventTitle').value=name;
+            };
+
+            window.genEventDesc=function(){
+                var d=dict();
+                var title=document.getElementById('EventTitle').value||pick(d.types);
+                var desc=title+'. '+pick(d.stories)+' '+pick(d.stories);
+                document.getElementById('EventDescription').value=desc;
+                document.getElementById('regenEventDescBtn').style.display='inline-block';
+            };
+        })();
+    </script>
+}

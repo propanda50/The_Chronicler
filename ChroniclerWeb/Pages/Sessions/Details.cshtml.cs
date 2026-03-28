@@ -24,6 +24,7 @@ namespace ChroniclerWeb.Pages.Sessions
 
         public Session Session { get; set; } = null!;
         public bool IsGameMaster { get; set; }
+        public bool CanEditNotes { get; set; }
         public int? PreviousSessionId { get; set; }
         public int? NextSessionId { get; set; }
 
@@ -45,6 +46,7 @@ namespace ChroniclerWeb.Pages.Sessions
 
             Session = session;
             IsGameMaster = await _campaignService.IsUserGameMaster(session.CampaignId, userId);
+            CanEditNotes = IsGameMaster || await _campaignService.CanUserAddNotes(session.CampaignId, userId);
 
             // Navigation
             PreviousSessionId = await _context.Sessions
