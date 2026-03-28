@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
-namespace TheChronicler.Web.Pages.Account
+namespace ChroniclerWeb.Pages.Account
 {
     public class AccessDeniedModel : PageModel
     {

@@ -1,5 +1,6 @@
 @page
-@model TheChronicler.Web.Pages.Characters.IndexModel
+@using ChroniclerWeb.Models
+@model ChroniclerWeb.Pages.Characters.IndexModel
 @{
     ViewData["Title"] = "Characters - " + Model.Campaign.Name;
 }
@@ -30,6 +31,18 @@
                     {
                         <div class="character-portrait" onclick="openImageModal('@character.PortraitUrl')">
                             <img src="@character.PortraitUrl" alt="@character.Name" />
+                            <div class="character-portrait-overlay">
+                                <i class="bi bi-zoom-in"></i>
+                            </div>
+                        </div>
+                    }
+                    else if (!string.IsNullOrEmpty(character.PortraitData))
+                    {
+                        var portraitSrc = character.PortraitData.StartsWith("data:") 
+                            ? character.PortraitData 
+                            : $"data:{character.PortraitContentType ?? "image/jpeg"};base64,{character.PortraitData}";
+                        <div class="character-portrait" onclick="openImageModal('@portraitSrc')">
+                            <img src="@portraitSrc" alt="@character.Name" />
                             <div class="character-portrait-overlay">
                                 <i class="bi bi-zoom-in"></i>
                             </div>

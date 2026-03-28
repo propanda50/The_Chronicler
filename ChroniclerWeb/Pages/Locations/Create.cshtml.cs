@@ -1,11 +1,12 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using TheChronicler.Web.Data;
-using TheChronicler.Web.Models;
-using TheChronicler.Web.Services;
+using ChroniclerWeb.Data;
+using ChroniclerWeb.Models;
+using ChroniclerWeb.Services;
 
-namespace TheChronicler.Web.Pages.Locations
+
+namespace ChroniclerWeb.Pages.Locations
 {
     public class CreateModel : PageModel
     {

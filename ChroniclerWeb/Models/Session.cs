@@ -26,6 +26,13 @@ namespace ChroniclerWeb.Models
         [MaxLength(1000)]
         public string Summary { get; set; } = string.Empty;
 
+        [MaxLength(500)]
+        public string? ImageUrl { get; set; }
+
+        public string? ImageData { get; set; }
+
+        public string? ImageContentType { get; set; }
+
         public bool IsPublished { get; set; } = false;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

@@ -1,0 +1,91 @@
+@page "{id:int}"
+@model ChroniclerWeb.Pages.Forum.DetailsModel
+@{
+    ViewData["Title"] = Model.Post.Title;
+}
+
+<div class="page-header">
+    <h2><i class="bi bi-chat-square-text me-2"></i>@Model.Post.Title</h2>
+    <small class="text-muted">
+        <a asp-page="/Forum/Index" asp-route-campaignId="@Model.Post.CampaignId" class="entity-link text-info">Back to Forum</a>
+    </small>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <span class="badge bg-secondary me-2">@Model.Post.Category</span>
+                <small class="text-muted">
+                    Posted by <strong>@(Model.Post.Author?.DisplayName ?? "Unknown")</strong>
+                    on @Model.Post.CreatedAt.ToString("MMM dd, yyyy 'at' HH:mm")
+                </small>
+            </div>
+        </div>
+        <div style="white-space: pre-wrap; line-height: 1.7;">@Model.Post.Content</div>
+    </div>
+</div>
+
+<!-- Replies -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-chat-left-dots me-2"></i>Replies (@Model.Replies.Count)</h5>
+    </div>
+    <div class="card-body">
+        @if (Model.Replies.Any())
+        {
+            @foreach (var reply in Model.Replies)
+            {
+                <div class="p-3 mb-3" style="background: var(--chr-bg-surface); border-radius: 8px; border-left: 3px solid var(--chr-primary);">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <small>
+                            <strong>@reply.AuthorName</strong>
+                            <span class="text-muted ms-2">@reply.CreatedAt.ToString("MMM dd, yyyy 'at' HH:mm")</span>
+                        </small>
+                        <form method="post" asp-page-handler="DeleteReply" class="d-inline">
+                            <input type="hidden" name="id" value="@Model.Post.Id" />
+                            <input type="hidden" name="replyId" value="@reply.Id" />
+                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete reply"
+                                    onclick="return confirm('Delete this reply?')">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+                    <div style="white-space: pre-wrap;">@reply.Content</div>
+                </div>
+            }
+        }
+        else
+        {
+            <p class="text-muted text-center py-3">No replies yet. Be the first to respond!</p>
+        }
+
+        <!-- Reply Form -->
+        <hr style="border-color: var(--chr-border);" />
+        <form method="post" asp-page-handler="Reply">
+            <input type="hidden" name="id" value="@Model.Post.Id" />
+            <div class="mb-3">
+                <label class="form-label">Your Reply</label>
+                <textarea name="ReplyContent" class="form-control" rows="4" placeholder="Write your reply..." required></textarea>
+            </div>
+            <button type="submit" class="btn btn-chronicle">
+                <i class="bi bi-reply me-1"></i>Post Reply
+            </button>
+        </form>
+    </div>
+</div>

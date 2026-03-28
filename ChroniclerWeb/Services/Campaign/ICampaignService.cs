@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ChroniclerData.Services.Campaign
+namespace ChroniclerWeb.Services
 {
     public interface ICampaignService
     {
@@ -15,5 +15,6 @@ namespace ChroniclerData.Services.Campaign
         Task<CampaignRole?> GetUserRole(int campaignId, string userId);
         Task<bool> CanUserEdit(int campaignId, string userId);
         Task<bool> CanUserAddNotes(int campaignId, string userId);
+        Task<bool> CanUserAccess(int campaignId, string userId);
     }
 }

@@ -1,5 +1,6 @@
 @page "{id:int}"
-@model TheChronicler.Web.Pages.Campaigns.DetailsModel
+@using ChroniclerWeb.Models
+@model ChroniclerWeb.Pages.Campaigns.DetailsModel
 @{
     ViewData["Title"] = Model.Campaign.Name;
 }
@@ -55,7 +56,7 @@
     <div class="card mb-4">
         <div class="card-body">
             <h5 class="card-title text-warning mb-3"><i class="bi bi-info-circle me-2"></i>Description</h5>
-            <p class="mb-0">@Model.Campaign.Description</p>
+            <p class="mb-0" data-translatable>@Model.Campaign.Description</p>
         </div>
     </div>
 }
@@ -91,10 +92,10 @@
         color: var(--chr-text-muted);
     }
     
-    .campaign-cover-placeholder i {
-        font-size: 4rem;
-        margin-bottom: 10px;
-    }
+        .campaign-cover-placeholder i {
+            font-size: 4rem;
+            margin-bottom: 10px;
+        }
     
     .campaign-cover-overlay {
         position: absolute;
@@ -176,9 +177,9 @@
             width: 100%;
         }
         
-        .campaign-actions .btn {
-            flex: 1;
-        }
+            .campaign-actions .btn {
+                flex: 1;
+            }
     }
 </style>
 
@@ -212,6 +213,16 @@
     <li class="nav-item">
         <a class="nav-link" style="color: var(--chr-text-muted);" asp-page="/Timeline/Index" asp-route-campaignId="@Model.Campaign.Id">
             <i class="bi bi-clock-history me-1"></i>Timeline
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" style="color: var(--chr-text-muted);" asp-page="/CampaignMap/Index" asp-route-campaignId="@Model.Campaign.Id">
+            <i class="bi bi-map me-1"></i>Map
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" style="color: var(--chr-text-muted);" asp-page="/Files/Index" asp-route-campaignId="@Model.Campaign.Id">
+            <i class="bi bi-folder2-open me-1"></i>Files
         </a>
     </li>
     <li class="nav-item">

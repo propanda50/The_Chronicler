@@ -1,228 +1,475 @@
 @page
-@model TheChronicler.Web.Pages.Characters.CreateModel
+@model ChroniclerWeb.Pages.Characters.CreateModel
 @{
-    ViewData["Title"] = "New Character";
+    ViewData["Title"] = "Create Character";
 }
 
+<script src="~/js/predefinedLists.js"></script>
+
+<script>
+    // Populate predefined lists from server
+    @if (!string.IsNullOrEmpty(Model.PredefinedClassesJson))
+    {
+        <text>
+        Object.assign(RPG_CLASSES, @Html.Raw(Model.PredefinedClassesJson));
+        </text>
+    }
+    @if (!string.IsNullOrEmpty(Model.PredefinedRacesJson))
+    {
+        <text>
+        Object.assign(RPG_RACES, @Html.Raw(Model.PredefinedRacesJson));
+        </text>
+    }
+    @if (!string.IsNullOrEmpty(Model.PredefinedRolesJson))
+    {
+        <text>
+        Object.assign(RPG_ROLES, @Html.Raw(Model.PredefinedRolesJson));
+        </text>
+    }
+</script>
+
+<style>
+    @@keyframes spin { to { transform: rotate(360deg); } }
+    .step-indicator {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .step {
+        padding: 10px 25px;
+        background: var(--chr-bg-surface);
+        border: 1px solid var(--chr-border);
+        border-radius: 20px;
+        color: var(--chr-text-muted);
+        font-size: 0.9rem;
+    }
+    .step.active {
+        background: var(--chr-primary);
+        color: white;
+        border-color: var(--chr-primary);
+    }
+    .step.completed {
+        background: rgba(16, 185, 129, 0.2);
+        color: var(--chr-green);
+        border-color: var(--chr-green);
+    }
+    .stat-row {
+        display: flex;
+        align-items: center;
+        margin-bottom: 16px;
+        gap: 12px;
+    }
+    .stat-name {
+        width: 160px;
+        min-width: 160px;
+        font-weight: 500;
+        color: var(--chr-text);
+    }
+    .stat-slider {
+        flex: 1;
+        -webkit-appearance: none;
+        height: 8px;
+        border-radius: 4px;
+        background: var(--chr-bg-surface);
+        outline: none;
+    }
+    .stat-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: var(--chr-gold);
+        cursor: pointer;
+        border: 2px solid white;
+    }
+    .stat-value {
+        width: 50px;
+        text-align: center;
+        font-weight: bold;
+        color: var(--chr-gold);
+    }
+    .stat-max {
+        width: 40px;
+        text-align: left;
+        color: var(--chr-text-muted);
+        font-size: 0.8rem;
+    }
+    .randomize-btn {
+        white-space: nowrap;
+        padding: 6px 12px;
+        font-size: 0.85rem;
+    }
+    .loading-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.8);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+    }
+    .loading-overlay.hidden {
+        display: none;
+    }
+    .spinner {
+        width: 60px;
+        height: 60px;
+        border: 5px solid var(--chr-border);
+        border-top-color: var(--chr-gold);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+    .character-preview {
+        border-radius: 16px;
+        border: 3px solid var(--chr-gold);
+        box-shadow: 0 0 30px rgba(212, 168, 67, 0.3);
+    }
+    .image-option {
+        border: 2px dashed var(--chr-border);
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s;
+        background: var(--chr-bg-surface);
+    }
+    .image-option:hover, .image-option.selected {
+        border-color: var(--chr-gold);
+        background: rgba(212, 168, 67, 0.1);
+    }
+    .ai-loading {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid var(--chr-border);
+        border-top-color: var(--chr-gold);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-left: 8px;
+    }
+    .dropdown-item {
+        cursor: pointer;
+    }
+    .dropdown-item:hover {
+        background: var(--chr-bg-surface);
+    }
+    .autocomplete-dropdown {
+        position: absolute;
+        z-index: 1000;
+        max-height: 200px;
+        overflow-y: auto;
+        background: var(--chr-bg-card);
+        border: 1px solid var(--chr-border);
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        display: none;
+    }
+    .autocomplete-dropdown.show {
+        display: block;
+    }
+    .autocomplete-item {
+        padding: 10px 15px;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    .autocomplete-item:hover {
+        background: rgba(139, 92, 246, 0.2);
+    }
+</style>
+
 <div class="page-header">
-    <h2><i class="bi bi-person-plus me-2"></i>New Character</h2>
+    <h2><i class="bi bi-person-plus me-2"></i>Create Character</h2>
     <small class="text-muted">
         <a asp-page="/Campaigns/Details" asp-route-id="@Model.CampaignId" class="entity-link text-info">@Model.CampaignName</a>
     </small>
 </div>
 
+<!-- Step Indicator -->
+<div class="step-indicator">
+    <div class="step active" id="step1Indicator">1. Basics</div>
+    <div class="step" id="step2Indicator">2. Name</div>
+    <div class="step" id="step3Indicator">3. Description</div>
+    <div class="step" id="step4Indicator">4. Image</div>
+</div>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay hidden" id="loadingOverlay">
+    <div class="spinner mb-3"></div>
+    <p class="text-light" id="loadingText">Generating...</p>
+</div>
+
 <div class="row justify-content-center">
-    <div class="col-md-10">
+    <div class="col-md-12">
         <div class="card">
             <div class="card-body p-4">
-                <form method="post" enctype="multipart/form-data">
+                <form method="post" enctype="multipart/form-data" id="characterForm">
                     <input type="hidden" name="Character.CampaignId" value="@Model.CampaignId" />
                     <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
-<div class="row">
-    <div class="col-md-8 mb-3">
-        <label asp-for="Character.Name" class="form-label">Name</label>
-        <div class="input-group">
-            <input asp-for="Character.Name" class="form-control" placeholder="Gandalf the Grey" id="CharacterName" />
-            <button type="button" class="btn btn-outline-secondary" onclick="generateRandomName()">
-                <i class="bi bi-shuffle"></i> Random
-            </button>
-        </div>
-        <span asp-validation-for="Character.Name" class="text-danger"></span>
-    </div>
-    <div class="col-md-4 mb-3">
-        <label class="form-label">AI Portrait (Mandatory)</label>
-        <div class="text-center">
-            <img id="portraitPreview" src="https://api.dicebear.com/7.x/adventurer/svg?seed=default&backgroundColor=b6e3f4" 
-                 alt="Character Portrait" class="img-fluid rounded" style="width: 200px; height: 200px; object-fit: cover; border: 3px solid var(--chr-primary);">
-            <div class="mt-3">
-                <button type="button" class="btn btn-chronicle btn-sm" onclick="generateRandomPortrait()">
-                    <i class="bi bi-shuffle"></i> Generate New Portrait
-                </button>
-            </div>
-            <input type="hidden" asp-for="Character.PortraitUrl" id="PortraitUrl" />
-            <input type="hidden" asp-for="Character.PortraitData" id="PortraitData" />
-            <input type="hidden" asp-for="Character.PortraitContentType" id="PortraitContentType" />
-        </div>
-        <small class="text-muted d-block mt-2">Every character gets a unique AI-generated portrait</small>
-    </div>
-</div>
+                    <!-- STEP 1: Character Basics (Class, Race, Role, Stats) -->
+                    <div id="step1">
+                        <h5 class="mb-4" style="color: var(--chr-gold);">
+                            <i class="bi bi-person-badge me-2"></i>Character Basics
+                        </h5>
 
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <label asp-for="Character.Type" class="form-label">Type</label>
-                            <select asp-for="Character.Type" class="form-select" id="CharacterType" onchange="toggleNPCRoles()">
-                                <option value="0">Player</option>
-                                <option value="1">NPC</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4 mb-3" id="npcRoleSection" style="display:none;">
-                            <label class="form-label">NPC Role</label>
-                            <select asp-for="Character.NPCRole" class="form-select">
-                                <option value="0">None</option>
-                                <option value="1">Antagonist</option>
-                                <option value="2">Ally</option>
-                                <option value="3">Merchant</option>
-                                <option value="4">Plot Driver</option>
-                                <option value="5">Quest Giver</option>
-                                <option value="6">Informant</option>
-                                <option value="7">Henchman</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label asp-for="Character.Status" class="form-label">Status</label>
-                            <select asp-for="Character.Status" class="form-select">
-                                <option value="0">Alive</option>
-                                <option value="1">Dead</option>
-                                <option value="2">Undead</option>
-                                <option value="3">Missing</option>
-                                <option value="4">Unknown</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <label asp-for="Character.Race" class="form-label">Race</label>
-                            <div class="input-group">
-                                <input asp-for="Character.Race" class="form-control" placeholder="Human, Elf, Dwarf..." id="CharacterRace" />
-                                <button type="button" class="btn btn-outline-secondary" onclick="generateRandomRace()">
-                                    <i class="bi bi-shuffle"></i>
-                                </button>
+                        <!-- Race, Class, Role with autocomplete -->
+                        <div class="row mb-4">
+                            <div class="col-md-4 mb-3 position-relative">
+                                <label class="form-label">Race</label>
+                                <div class="input-group">
+                                    <input asp-for="Character.Race" class="form-control" placeholder="Select or type race..." id="CharacterRace" autocomplete="off" />
+                                    <button type="button" class="btn btn-outline-secondary randomize-btn" onclick="randomizeRace()">
+                                        <i class="bi bi-shuffle"></i>
+                                    </button>
+                                </div>
+                                <div class="autocomplete-dropdown" id="raceDropdown"></div>
+                            </div>
+                            <div class="col-md-4 mb-3 position-relative">
+                                <label class="form-label">Class</label>
+                                <div class="input-group">
+                                    <input asp-for="Character.Class" class="form-control" placeholder="Select or type class..." id="CharacterClass" autocomplete="off" />
+                                    <button type="button" class="btn btn-outline-secondary randomize-btn" onclick="randomizeClass()">
+                                        <i class="bi bi-shuffle"></i>
+                                    </button>
+                                </div>
+                                <div class="autocomplete-dropdown" id="classDropdown"></div>
+                            </div>
+                            <div class="col-md-4 mb-3 position-relative">
+                                <label class="form-label">Role</label>
+                                <div class="input-group">
+                                    <input asp-for="Character.Role" class="form-control" placeholder="Select or type role..." id="CharacterRole" autocomplete="off" />
+                                    <button type="button" class="btn btn-outline-secondary randomize-btn" onclick="randomizeRole()">
+                                        <i class="bi bi-shuffle"></i>
+                                    </button>
+                                </div>
+                                <div class="autocomplete-dropdown" id="roleDropdown"></div>
                             </div>
                         </div>
-                        <div class="col-md-4 mb-3">
-                            <label asp-for="Character.Class" class="form-label">Class</label>
-                            <div class="input-group">
-                                <input asp-for="Character.Class" class="form-control" placeholder="Wizard, Fighter..." id="CharacterClass" />
-                                <button type="button" class="btn btn-outline-secondary" onclick="generateRandomClass()">
-                                    <i class="bi bi-shuffle"></i>
-                                </button>
+
+                        <!-- NPC Type and Status -->
+                        <div class="row mb-4">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Type</label>
+                                <select asp-for="Character.Type" class="form-select" id="CharacterType" onchange="toggleNPCRoles()">
+                                    <option value="0">Player Character</option>
+                                    <option value="1">NPC</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Status</label>
+                                <select asp-for="Character.Status" class="form-select">
+                                    <option value="0">Alive</option>
+                                    <option value="1">Dead</option>
+                                    <option value="2">Undead</option>
+                                    <option value="3">Missing</option>
+                                    <option value="4">Unknown</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3" id="npcRoleSection" style="display: none;">
+                                <label class="form-label">NPC Role</label>
+                                <select asp-for="Character.NPCRole" class="form-select">
+                                    <option value="0">None</option>
+                                    <option value="1">Antagonist</option>
+                                    <option value="2">Ally</option>
+                                    <option value="3">Merchant</option>
+                                    <option value="4">Plot Driver</option>
+                                    <option value="5">Quest Giver</option>
+                                    <option value="6">Informant</option>
+                                    <option value="7">Henchman</option>
+                                </select>
                             </div>
                         </div>
-                        <div class="col-md-4 mb-3">
-                            <label asp-for="Character.Role" class="form-label">Role (optional)</label>
-                            <input asp-for="Character.Role" class="form-control" placeholder="Mentor, Quest Giver..." />
+
+                        <!-- Stats Section -->
+                        <hr class="chr-divider" />
+                        <h5 class="mb-4" style="color: var(--chr-gold);">
+                            <i class="bi bi-graph-up me-2"></i>Stats
+                            <small class="text-muted ms-3">Points remaining: <span id="pointsRemaining" class="text-warning">60</span> / 60</small>
+                        </h5>
+
+                        <!-- Stats and Radar Chart -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="stats-container">
+                                    <div class="stat-row">
+                                        <span class="stat-name">Strength</span>
+                                        <input type="range" class="stat-slider" id="StrengthSlider" min="0" max="20" value="0" oninput="updateStat('Strength', this.value)">
+                                        <span class="stat-value" id="StrengthValue">0</span>
+                                        <span class="stat-max">/20</span>
+                                        <input type="hidden" asp-for="Character.Strength" id="Strength" value="0" />
+                                    </div>
+                                    <div class="stat-row">
+                                        <span class="stat-name">Agility</span>
+                                        <input type="range" class="stat-slider" id="AgilitySlider" min="0" max="20" value="0" oninput="updateStat('Agility', this.value)">
+                                        <span class="stat-value" id="AgilityValue">0</span>
+                                        <span class="stat-max">/20</span>
+                                        <input type="hidden" asp-for="Character.Agility" id="Agility" value="0" />
+                                    </div>
+                                    <div class="stat-row">
+                                        <span class="stat-name">Health</span>
+                                        <input type="range" class="stat-slider" id="HealthSlider" min="0" max="20" value="0" oninput="updateStat('Health', this.value)">
+                                        <span class="stat-value" id="HealthValue">0</span>
+                                        <span class="stat-max">/20</span>
+                                        <input type="hidden" asp-for="Character.Health" id="Health" value="0" />
+                                    </div>
+                                    <div class="stat-row">
+                                        <span class="stat-name">Intelligence</span>
+                                        <input type="range" class="stat-slider" id="IntelligenceSlider" min="0" max="20" value="0" oninput="updateStat('Intelligence', this.value)">
+                                        <span class="stat-value" id="IntelligenceValue">0</span>
+                                        <span class="stat-max">/20</span>
+                                        <input type="hidden" asp-for="Character.Intelligence" id="Intelligence" value="0" />
+                                    </div>
+                                    <div class="stat-row">
+                                        <span class="stat-name">Charisma</span>
+                                        <input type="range" class="stat-slider" id="CharismaSlider" min="0" max="20" value="0" oninput="updateStat('Charisma', this.value)">
+                                        <span class="stat-value" id="CharismaValue">0</span>
+                                        <span class="stat-max">/20</span>
+                                        <input type="hidden" asp-for="Character.Charisma" id="Charisma" value="0" />
+                                    </div>
+                                    <div class="stat-row">
+                                        <span class="stat-name">Endurance</span>
+                                        <input type="range" class="stat-slider" id="EnduranceSlider" min="0" max="20" value="0" oninput="updateStat('Endurance', this.value)">
+                                        <span class="stat-value" id="EnduranceValue">0</span>
+                                        <span class="stat-max">/20</span>
+                                        <input type="hidden" asp-for="Character.Endurance" id="Endurance" value="0" />
+                                    </div>
+                                </div>
+                                
+                                <!-- Randomize Buttons -->
+                                <div class="text-center mt-3">
+                                    <button type="button" class="btn btn-outline-chronicle me-2" onclick="generateRandomStats()">
+                                        <i class="bi bi-shuffle me-1"></i> Randomize Stats
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary" onclick="resetStats()">
+                                        <i class="bi bi-arrow-clockwise me-1"></i> Reset
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Radar Chart -->
+                            <div class="col-md-6">
+                                <div class="radar-chart-container text-center">
+                                    <canvas id="radarCanvas" width="300" height="300" style="max-width: 100%;"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-end">
+                            <button type="button" class="btn btn-chronicle" onclick="goToStep2()">
+                                Next <i class="bi bi-arrow-right ms-1"></i>
+                            </button>
                         </div>
                     </div>
 
-<hr class="chr-divider" />
-<h5 class="mb-3" style="color: var(--chr-gold);">
-    <i class="bi bi-graph-up me-1"></i>Statistics
-    <small class="text-muted ms-2">Points remaining: <span id="pointsRemaining" class="text-warning">54</span> / 54 (Total used: <span id="totalUsed">0</span>)</small>
-</h5>
-
-<!-- Stats Input Section -->
-<div class="row">
-    <div class="col-md-3 mb-2">
-        <label class="form-label text-center d-block">Strength</label>
-        <div class="input-group">
-            <button type="button" class="btn btn-outline-secondary" onclick="adjustStat('Strength', -1)">-</button>
-            <input asp-for="Character.Strength" class="form-control text-center stat-input" id="Strength" readonly />
-            <button type="button" class="btn btn-outline-secondary" onclick="adjustStat('Strength', 1)">+</button>
-        </div>
-    </div>
-    <div class="col-md-3 mb-2">
-        <label class="form-label text-center d-block">Agility</label>
-        <div class="input-group">
-            <button type="button" class="btn btn-outline-secondary" onclick="adjustStat('Agility', -1)">-</button>
-            <input asp-for="Character.Agility" class="form-control text-center stat-input" id="Agility" readonly />
-            <button type="button" class="btn btn-outline-secondary" onclick="adjustStat('Agility', 1)">+</button>
-        </div>
-    </div>
-    <div class="col-md-3 mb-2">
-        <label class="form-label text-center d-block">Health</label>
-        <div class="input-group">
-            <button type="button" class="btn btn-outline-secondary" onclick="adjustStat('Health', -1)">-</button>
-            <input asp-for="Character.Health" class="form-control text-center stat-input" id="Health" readonly />
-            <button type="button" class="btn btn-outline-secondary" onclick="adjustStat('Health', 1)">+</button>
-        </div>
-    </div>
-    <div class="col-md-3 mb-2">
-        <label class="form-label text-center d-block">Intelligence</label>
-        <div class="input-group">
-            <button type="button" class="btn btn-outline-secondary" onclick="adjustStat('Intelligence', -1)">-</button>
-            <input asp-for="Character.Intelligence" class="form-control text-center stat-input" id="Intelligence" readonly />
-            <button type="button" class="btn btn-outline-secondary" onclick="adjustStat('Intelligence', 1)">+</button>
-        </div>
-    </div>
-</div>
-
-<!-- Radar Chart Section -->
-<div class="radar-chart-container mt-4">
-    <h6 class="text-center mb-3" style="color: var(--chr-primary);">Stat Distribution</h6>
-    <div class="radar-chart">
-        <div class="radar-grid">
-            <!-- Concentric circles -->
-            <div class="radar-circle" style="--size: 20%;"></div>
-            <div class="radar-circle" style="--size: 40%;"></div>
-            <div class="radar-circle" style="--size: 60%;"></div>
-            <div class="radar-circle" style="--size: 80%;"></div>
-            <div class="radar-circle" style="--size: 100%;"></div>
-            
-            <!-- Axes -->
-            <div class="radar-axis" style="--angle: 0deg;">
-                <div class="axis-label">Strength</div>
-            </div>
-            <div class="radar-axis" style="--angle: 90deg;">
-                <div class="axis-label">Agility</div>
-            </div>
-            <div class="radar-axis" style="--angle: 180deg;">
-                <div class="axis-label">Health</div>
-            </div>
-            <div class="radar-axis" style="--angle: 270deg;">
-                <div class="axis-label">Intelligence</div>
-            </div>
-        </div>
-        
-        <!-- Stat Plot -->
-        <div class="radar-plot">
-            <div class="radar-point" id="strengthPoint" style="--value: 5; --angle: 0deg;"></div>
-            <div class="radar-point" id="agilityPoint" style="--value: 5; --angle: 90deg;"></div>
-            <div class="radar-point" id="healthPoint" style="--value: 5; --angle: 180deg;"></div>
-            <div class="radar-point" id="intelligencePoint" style="--value: 5; --angle: 270deg;"></div>
-            
-            <!-- Connect points -->
-            <div class="radar-area" id="radarArea"></div>
-        </div>
-    </div>
-</div>
-
-<div class="row mt-3">
-    <div class="col-md-12 text-center">
-        <button type="button" class="btn btn-outline-chronicle" onclick="generateRandomStats()">
-            <i class="bi bi-shuffle me-1"></i> Random Stats
-        </button>
-        <button type="button" class="btn btn-outline-secondary" onclick="resetStats()">
-            <i class="bi bi-arrow-clockwise me-1"></i> Reset to 5
-        </button>
-    </div>
-
-                    <hr class="chr-divider" />
-
-                    <div class="mb-3">
-                        <label asp-for="Character.Description" class="form-label">Description</label>
-                        <textarea asp-for="Character.Description" class="form-control" rows="3" placeholder="Describe this character..."></textarea>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label asp-for="Character.SharedNotes" class="form-label">Shared Notes (everyone can see)</label>
-                            <textarea asp-for="Character.SharedNotes" class="form-control" rows="3" placeholder="Visible to all players..."></textarea>
+                    <!-- STEP 2: Character Name -->
+                    <div id="step2" style="display: none;">
+                        <h5 class="mb-4" style="color: var(--chr-gold);">
+                            <i class="bi bi-person-badge me-2"></i>Character Name & Pseudo
+                        </h5>
+                        
+                        <div class="mb-4">
+                            <label class="form-label">Full Name</label>
+                            <div class="input-group">
+                                <input asp-for="Character.Name" class="form-control" placeholder="Enter character full name..." id="CharacterName" />
+                                <button type="button" class="btn btn-chronicle" onclick="generateCharacterName()" id="generateNameBtn">
+                                    <i class="bi bi-magic me-1"></i> Generate Name
+                                </button>
+                            </div>
+                            <small class="text-muted">AI generates a unique first name + last name based on race, class, and role</small>
+                            <span asp-validation-for="Character.Name" class="text-danger"></span>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label asp-for="Character.GMNotes" class="form-label">GM Notes (only GM can see)</label>
-                            <textarea asp-for="Character.GMNotes" class="form-control" rows="3" placeholder="Private notes..."></textarea>
+                        
+                        <div class="mb-4">
+                            <label class="form-label">Surname / Pseudo (Optional)</label>
+                            <div class="input-group">
+                                <input asp-for="Character.Pseudo" class="form-control" placeholder="Enter character pseudo or epithet..." id="CharacterPseudo" />
+                                <button type="button" class="btn btn-chronicle" onclick="generateCharacterPseudo()" id="generatePseudoBtn">
+                                    <i class="bi bi-magic me-1"></i> Generate Pseudo
+                                </button>
+                            </div>
+                            <small class="text-muted">AI generates a fitting epithet based on class, role, and stats (e.g., "The Iron Blade")</small>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-outline-secondary" onclick="goToStep1()">
+                                <i class="bi bi-arrow-left me-1"></i> Previous
+                            </button>
+                            <button type="button" class="btn btn-chronicle" onclick="goToStep3()">
+                                Next <i class="bi bi-arrow-right ms-1"></i>
+                            </button>
                         </div>
                     </div>
 
-                    <div class="d-flex justify-content-between">
-                        <a asp-page="/Characters/Index" asp-route-campaignId="@Model.CampaignId" class="btn btn-outline-secondary">
-                            <i class="bi bi-arrow-left me-1"></i>Cancel
-                        </a>
-                        <button type="submit" class="btn btn-chronicle">
-                            <i class="bi bi-check-lg me-1"></i>Create Character
-                        </button>
+                    <!-- STEP 3: Character Description -->
+                    <div id="step3" style="display: none;">
+                        <h5 class="mb-4" style="color: var(--chr-gold);">
+                            <i class="bi bi-card-text me-2"></i>Character Description
+                        </h5>
+                        
+                        <div class="mb-4">
+                            <label class="form-label">Description</label>
+                            <div class="d-flex gap-2 mb-2">
+                                <button type="button" class="btn btn-chronicle" onclick="generateCharacterDescription()" id="generateDescBtn">
+                                    <i class="bi bi-magic me-1"></i> Generate with AI
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="regenerateDescription()" id="regenerateDescBtn" style="display: none;">
+                                    <i class="bi bi-arrow-clockwise me-1"></i> Regenerate
+                                </button>
+                            </div>
+                            <textarea asp-for="Character.Description" class="form-control" rows="6" placeholder="Describe your character's appearance, background, personality..." id="CharacterDescription"></textarea>
+                            <small class="text-muted">AI generates 4-6 sentences based on all character details</small>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-outline-secondary" onclick="goToStep2()">
+                                <i class="bi bi-arrow-left me-1"></i> Previous
+                            </button>
+                            <button type="button" class="btn btn-chronicle" onclick="goToStep4()">
+                                Next <i class="bi bi-arrow-right ms-1"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- STEP 4: Character Image -->
+                    <div id="step4" style="display: none;">
+                        <h5 class="mb-4" style="color: var(--chr-gold);">
+                            <i class="bi bi-image me-2"></i>Character Image
+                        </h5>
+
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <div class="image-option" id="uploadOption" onclick="document.getElementById('characterImageUpload').click()">
+                                    <i class="bi bi-folder2-open fs-1 d-block mb-2" style="color: var(--chr-primary);"></i>
+                                    <strong>Upload Image</strong>
+                                    <p class="text-muted mb-0 small">PNG, JPG, GIF - Photo or artwork of your character</p>
+                                </div>
+                                <input type="file" id="characterImageUpload" class="form-control mt-2" accept="image/*" onchange="handleImageUpload(this)" />
+                            </div>
+                        </div>
+
+                        <!-- Image Preview -->
+                        <div class="text-center mb-4" id="imagePreviewContainer" style="display: none;">
+                            <img id="characterImagePreview" class="img-fluid character-preview" style="max-height: 400px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);" alt="Character Preview" />
+                            <button type="button" class="btn btn-outline-danger mt-2" onclick="removeImage()">
+                                <i class="bi bi-trash me-1"></i> Remove
+                            </button>
+                        </div>
+
+                        <input type="hidden" asp-for="Character.PortraitUrl" id="PortraitUrl" />
+                        <input type="hidden" asp-for="Character.PortraitData" id="PortraitData" />
+                        <input type="hidden" asp-for="Character.PortraitContentType" id="PortraitContentType" />
+
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-outline-secondary" onclick="goToStep3()">
+                                <i class="bi bi-arrow-left me-1"></i> Previous
+                            </button>
+                            <button type="submit" class="btn btn-chronicle">
+                                <i class="bi bi-check-lg me-1"></i> Create Character
+                            </button>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -232,249 +479,595 @@
 
 @section Scripts {
     <script>
-        const MAX_POINTS = 54;
-        const BASE_STAT = 0;
-        const MAX_STAT = 18;
-        let usedPoints = 0;
+        const MAX_POINTS = 60;
+        
+        // Step Navigation
+        function goToStep1() {
+            document.getElementById('step1').style.display = 'block';
+            document.getElementById('step2').style.display = 'none';
+            document.getElementById('step3').style.display = 'none';
+            document.getElementById('step4').style.display = 'none';
+            updateStepIndicators(1);
+        }
+
+        function goToStep2() {
+            // Validate step 1
+            const race = document.getElementById('CharacterRace').value;
+            const charClass = document.getElementById('CharacterClass').value;
+            
+            if (!race.trim() || !charClass.trim()) {
+                alert('Please select or enter Race and Class before proceeding.');
+                return;
+            }
+            
+            document.getElementById('step1').style.display = 'none';
+            document.getElementById('step2').style.display = 'block';
+            document.getElementById('step3').style.display = 'none';
+            document.getElementById('step4').style.display = 'none';
+            updateStepIndicators(2);
+        }
+
+        function goToStep3() {
+            // Validate step 2
+            const name = document.getElementById('CharacterName').value;
+            
+            if (!name.trim()) {
+                alert('Please enter a name for your character.');
+                return;
+            }
+            
+            // Store original AI content for translation
+            const currentLang = localStorage.getItem('preferredLanguage') || 'en';
+            if (typeof TranslationService !== 'undefined') {
+                TranslationService.storeOriginal('characterName', name, currentLang);
+                const pseudo = document.getElementById('CharacterPseudo').value;
+                if (pseudo) {
+                    TranslationService.storeOriginal('characterPseudo', pseudo, currentLang);
+                }
+            }
+            
+            document.getElementById('step1').style.display = 'none';
+            document.getElementById('step2').style.display = 'none';
+            document.getElementById('step3').style.display = 'block';
+            document.getElementById('step4').style.display = 'none';
+            updateStepIndicators(3);
+        }
+
+        function goToStep4() {
+            // Store description for translation
+            const desc = document.getElementById('CharacterDescription').value;
+            const currentLang = localStorage.getItem('preferredLanguage') || 'en';
+            if (desc && typeof TranslationService !== 'undefined') {
+                TranslationService.storeOriginal('characterDescription', desc, currentLang);
+            }
+            
+            document.getElementById('step1').style.display = 'none';
+            document.getElementById('step2').style.display = 'none';
+            document.getElementById('step3').style.display = 'none';
+            document.getElementById('step4').style.display = 'block';
+            updateStepIndicators(4);
+        }
+
+        function updateStepIndicators(currentStep) {
+            for (let i = 1; i <= 4; i++) {
+                const el = document.getElementById('step' + i + 'Indicator');
+                if (i < currentStep) {
+                    el.className = 'step completed';
+                } else if (i === currentStep) {
+                    el.className = 'step active';
+                } else {
+                    el.className = 'step';
+                }
+            }
+        }
+
+        // Stats Management
+        function updateStat(stat, value) {
+            let val = parseInt(value);
+            let used = 0;
+            
+            ['Strength', 'Agility', 'Health', 'Intelligence', 'Charisma', 'Endurance'].forEach(s => {
+                if (s !== stat) {
+                    used += parseInt(document.getElementById(s).value) || 0;
+                }
+            });
+            
+            const remaining = MAX_POINTS - used;
+            
+            if (val > remaining) {
+                val = Math.max(0, remaining);
+            }
+            
+            val = Math.max(0, val);
+            
+            document.getElementById(stat).value = val;
+            document.getElementById(stat + 'Value').textContent = val;
+            document.getElementById(stat + 'Slider').value = val;
+            calculateUsedPoints();
+            updateRadarChart();
+        }
 
         function calculateUsedPoints() {
-            usedPoints = 0;
-            ['Strength', 'Agility', 'Health', 'Intelligence'].forEach(stat => {
-                const val = parseInt(document.getElementById(stat).value) || 0;
-                usedPoints += val;
+            let used = 0;
+            ['Strength', 'Agility', 'Health', 'Intelligence', 'Charisma', 'Endurance'].forEach(stat => {
+                used += parseInt(document.getElementById(stat).value) || 0;
             });
-            document.getElementById('pointsRemaining').textContent = MAX_POINTS - usedPoints;
-            document.getElementById('totalUsed').textContent = usedPoints;
-        }
-
-        function adjustStat(stat, delta) {
-            const input = document.getElementById(stat);
-            let val = parseInt(input.value) || 0;
-            const newVal = val + delta;
+            const remaining = MAX_POINTS - used;
+            document.getElementById('pointsRemaining').textContent = remaining;
             
-            if (newVal >= 0 && newVal <= MAX_STAT) {
-                let total = 0;
-                ['Strength', 'Agility', 'Health', 'Intelligence'].forEach(s => {
-                    if (s === stat) {
-                        total += newVal;
-                    } else {
-                        total += parseInt(document.getElementById(s).value) || 0;
-                    }
-                });
-                
-                if (total <= MAX_POINTS || delta < 0) {
-                    input.value = newVal;
-                    calculateUsedPoints();
-                    updateRadarChart();
-                }
+            const pointsEl = document.getElementById('pointsRemaining');
+            if (remaining < 0) {
+                pointsEl.className = 'text-danger';
+            } else if (remaining === 0) {
+                pointsEl.className = 'text-success';
+            } else {
+                pointsEl.className = 'text-warning';
             }
-        }
-
-        function updateRadarChart() {
-            // Get stat values (1-20 range)
-            const strength = parseInt(document.getElementById('Strength').value) || 5;
-            const agility = parseInt(document.getElementById('Agility').value) || 5;
-            const health = parseInt(document.getElementById('Health').value) || 5;
-            const intelligence = parseInt(document.getElementById('Intelligence').value) || 5;
-            
-            // Convert to percentage of max (20) for radar chart
-            const maxStat = 20;
-            const strengthPct = (strength / maxStat) * 100;
-            const agilityPct = (agility / maxStat) * 100;
-            const healthPct = (health / maxStat) * 100;
-            const intelligencePct = (intelligence / maxStat) * 100;
-            
-            // Update point positions
-            document.getElementById('strengthPoint').style.setProperty('--value', strengthPct);
-            document.getElementById('agilityPoint').style.setProperty('--value', agilityPct);
-            document.getElementById('healthPoint').style.setProperty('--value', healthPct);
-            document.getElementById('intelligencePoint').style.setProperty('--value', intelligencePct);
-        }
-
-        function toggleNPCRoles() {
-            const type = document.getElementById('CharacterType').value;
-            const npcSection = document.getElementById('npcRoleSection');
-            npcSection.style.display = type === '1' ? 'block' : 'none';
-        }
-
-        async function generateRandomName() {
-            // Get current race and class to generate appropriate name
-            const race = document.getElementById('CharacterRace').value;
-            const characterClass = document.getElementById('CharacterClass').value;
-            
-            // Name arrays for different races - only used for fallback
-            const humanNames = ['Aldric', 'Brenna', 'Cedric', 'Dara', 'Eldric', 'Freya', 'Gareth', 'Helena', 'Idris', 'Jasmine', 'Kael', 'Luna', 'Magnus', 'Nadia', 'Orion', 'Rowan', 'Soren', 'Thalia', 'Wren', 'Zephyr'];
-            const elfNames = ['Aelindra', 'Caelum', 'Eryndor', 'Faelyn', 'Galadriel', 'Ilrath', 'Laethiel', 'Miriel', 'Nimrodel', 'Silvanus', 'Thranduil', 'Arwen'];
-            const dwarfNames = ['Balin', 'Dwalin', 'Fili', 'Gimli', 'Kili', 'Thorin', 'Durin', 'Gloin', 'Oin', 'Bofur', 'Bombur', 'Nori'];
-            const orcNames = ['Grom', 'Thrash', 'Ugluk', 'Mogul', 'Gashnak', 'Grishnak', 'Lurtz', 'Bolg', 'Azog', 'Boldog'];
-            const halflingNames = ['Pippin', 'Merry', 'Frodo', 'Sam', 'Bilbo', 'Rosie', 'Hamfast', 'Meriadoc'];
-            const tieflingNames = ['Morrigan', 'Raziel', 'Lilith', 'Dante', 'Aurora', 'Zariel', 'Mephistopheles'];
-            const dragonbornNames = ['Arjhan', 'Balasar', 'Bharash', 'Donaar', 'Ghesh', 'Heskan', 'Kriv', 'Medrash', 'Nala'];
-            
-            const lastNames = ['Blackwood', 'Stormwind', 'Ironforge', 'Shadowmere', 'Brightblade', 'Frostborn', 'Moonwhisper', 'Stoneheart', 'Thornwood', 'Dragonbane', 'Silvermist', 'Goldweaver'];
-            
-            try {
-                // Call the AI generator service to generate a name
-                const response = await fetch('/AIGenerator/GenerateName', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ race: race, characterClass: characterClass })
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.name) {
-                        document.getElementById('CharacterName').value = data.name;
-                        return;
-                    }
-                }
-            } catch (error) {
-                console.log('Using fallback name generator');
-            }
-            
-            // Fallback to traditional random name generation
-            let firstNames = humanNames;
-            if (race) {
-                if (race.toLowerCase().includes('elf') || race.toLowerCase().includes('elven')) {
-                    firstNames = elfNames;
-                } else if (race.toLowerCase().includes('dwarf') || race.toLowerCase().includes('dwarven')) {
-                    firstNames = dwarfNames;
-                } else if (race.toLowerCase().includes('orc') || race.toLowerCase().includes('half-orc')) {
-                    firstNames = orcNames;
-                } else if (race.toLowerCase().includes('halfling') || race.toLowerCase().includes('hobbit')) {
-                    firstNames = halflingNames;
-                } else if (race.toLowerCase().includes('tiefling')) {
-                    firstNames = tieflingNames;
-                } else if (race.toLowerCase().includes('dragonborn')) {
-                    firstNames = dragonbornNames;
-                }
-            }
-            
-            const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
-            const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
-            document.getElementById('CharacterName').value = firstName + ' ' + lastName;
-        }
-
-        function generateRandomRace() {
-            const races = ['Human', 'Elf', 'Dwarf', 'Halfling', 'Orc', 'Tiefling', 'Dragonborn', 'Gnome', 'Half-Elf', 'Half-Orc'];
-            document.getElementById('CharacterRace').value = races[Math.floor(Math.random() * races.length)];
-        }
-
-        function generateRandomClass() {
-            const classes = ['Fighter', 'Wizard', 'Rogue', 'Cleric', 'Paladin', 'Ranger', 'Barbarian', 'Bard', 'Druid', 'Monk', 'Sorcerer', 'Warlock'];
-            document.getElementById('CharacterClass').value = classes[Math.floor(Math.random() * classes.length)];
         }
 
         function generateRandomStats() {
-            // Distribute 54 points across 4 stats (Strength, Agility, Health, Intelligence)
-            // Each stat starts at 0 and can go up to 18
-            const stats = ['Strength', 'Agility', 'Health', 'Intelligence'];
+            let points = MAX_POINTS;
+            const stats = ['Strength', 'Agility', 'Health', 'Intelligence', 'Charisma', 'Endurance'];
+            const values = [];
             
-            // Give each stat the base value
-            stats.forEach(stat => {
-                document.getElementById(stat).value = 0;
-            });
-            
-            // Distribute 54 points randomly
-            let remainingPoints = MAX_POINTS;
-            while (remainingPoints > 0) {
-                const randomStat = stats[Math.floor(Math.random() * stats.length)];
-                const currentVal = parseInt(document.getElementById(randomStat).value);
-                if (currentVal < MAX_STAT) {
-                    document.getElementById(randomStat).value = currentVal + 1;
-                    remainingPoints--;
+            for (let i = 0; i < stats.length; i++) {
+                if (i === stats.length - 1) {
+                    values[i] = points;
+                } else {
+                    const maxForThis = Math.min(points - (stats.length - i - 1), 20);
+                    const minForThis = Math.max(0, points - 20 * (stats.length - i - 1));
+                    values[i] = Math.floor(Math.random() * (maxForThis - minForThis + 1)) + minForThis;
                 }
+                points -= values[i];
             }
+            
+            // Shuffle
+            for (let i = values.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [values[i], values[j]] = [values[j], values[i]];
+            }
+            
+            stats.forEach((stat, idx) => {
+                document.getElementById(stat).value = values[idx];
+                document.getElementById(stat + 'Value').textContent = values[idx];
+                document.getElementById(stat + 'Slider').value = values[idx];
+            });
             
             calculateUsedPoints();
             updateRadarChart();
-        }
-
-        async function generateRandomPortrait() {
-            // Generate a unique seed for the portrait
-            const seed = Math.random().toString(36).substring(7);
-            const race = document.getElementById('CharacterRace').value || 'fantasy';
-            const characterClass = document.getElementById('CharacterClass').value || 'warrior';
-            
-            try {
-                // Try Ollama image generation first
-                const response = await fetch('/AIGenerator/GeneratePortrait', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        race: race, 
-                        characterClass: characterClass,
-                        seed: seed 
-                    })
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.imageUrl) {
-                        document.getElementById('portraitPreview').src = data.imageUrl;
-                        document.getElementById('PortraitUrl').value = data.imageUrl;
-                        return;
-                    }
-                }
-            } catch (error) {
-                console.log('Using DiceBear fallback for portrait');
-            }
-            
-            // Fallback to DiceBear
-            const portraitUrl = `https://api.dicebear.com/7.x/adventurer/svg?seed=${seed}&backgroundColor=b6e3f4`;
-            document.getElementById('portraitPreview').src = portraitUrl;
-            document.getElementById('PortraitUrl').value = portraitUrl;
-        }
-            try {
-                // Call the AI service to generate a character portrait
-                const response = await fetch('/AiChat', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: 'message=generate character portrait fantasy RPG'
-                });
-                
-                if (response.ok) {
-                    const result = await response.text();
-                    // For now, we'll continue with the dicebear service but note that 
-                    // in a full implementation, this would use Ollama for image generation
-                    const seed = Math.random().toString(36).substring(7);
-                    const portraitUrl = `https://api.dicebear.com/7.x/adventurer/svg?seed=${seed}&backgroundColor=b6e3f4`;
-                    document.getElementById('portraitPreview').src = portraitUrl;
-                    document.getElementById('PortraitUrl').value = portraitUrl;
-                    
-                    // Show a success message
-                    alert('AI-generated portrait created! (Note: Full Ollama image integration coming soon)');
-                } else {
-                    throw new Error('Failed to generate portrait');
-                }
-            } catch (error) {
-                console.error('Error generating portrait:', error);
-                // Fallback to dicebear
-                const seed = Math.random().toString(36).substring(7);
-                const portraitUrl = `https://api.dicebear.com/7.x/adventurer/svg?seed=${seed}&backgroundColor=b6e3f4`;
-                document.getElementById('portraitPreview').src = portraitUrl;
-                document.getElementById('PortraitUrl').value = portraitUrl;
-            }
         }
 
         function resetStats() {
-            ['Strength', 'Agility', 'Health', 'Intelligence'].forEach(stat => {
+            ['Strength', 'Agility', 'Health', 'Intelligence', 'Charisma', 'Endurance'].forEach(stat => {
                 document.getElementById(stat).value = 0;
+                document.getElementById(stat + 'Value').textContent = 0;
+                document.getElementById(stat + 'Slider').value = 0;
             });
             calculateUsedPoints();
             updateRadarChart();
         }
 
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            // Set initial values to 0
-            ['Strength', 'Agility', 'Health', 'Intelligence'].forEach(stat => {
-                document.getElementById(stat).value = 0;
+        // ============== INLINE RANDOM GENERATORS (EXPANDED) ==============
+        var _CD = {
+            en: {
+                human: ['Marcus','Elena','Gareth','Lyra','Aldric','Brenna','Cedric','Dara','Eldric','Freya','Helena','Idris','Kael','Luna','Magnus','Nadia','Orion','Petra','Rowan','Soren','Alistair','Brienne','Corwin','Daphne','Edmund','Fiona','Gideon','Hawthorne','Isolde','Jasper','Katarina','Leander','Melisande','Nikolai','Ophelia','Percival','Quinn','Rosalind','Theron','Valeria','Wilhemina','Xander','Yara','Zephyr','Aldous','Beatrice','Cassian','Delphine','Evander','Felicity','Gervase','Honora','Ignatius','Jocelyn','Kingsley','Lysander','Morgana','Neville','Oberon','Pandora'],
+                elf: ['Elara','Thalion','Aelindra','Silvanus','Miriel','Galadriel','Legolas','Arwen','Luthien','Beren','Elrond','Faelar','Aelindor','Celindra','Daerindel','Elanor','Finduilas','Galadhrim','Haldir','Idril','Laurelin','Melpomene','Nimrodel','Orophin','Rivendell','Silivros','Tinuvial','Undomiel','Vanyamar','Windreamer','Zirakzigil','Aearon','Berethor','Calathor','Daemir','Elenion','Faelivrin','Gwindor','Haladin','Ithilien','Jareth','Kelland','Lómion','Maeglin','Nerwen','Oropher','Pelandor','Quessar','Rithil','Silivras','Thranduil'],
+                dwarf: ['Thorin','Balin','Dwalin','Fili','Kili','Gimli','Durin','Gloin','Oin','Bofur','Bombur','Nori','Azaghal','Barin','Casrad','Dain','Einkil','Frerin','Gror','Hammerfall','Ironfoot','Kazakum','Mardin','Nain','Ori','Pipin','Radbur','Stonemantle','Thrain','Ulfgar','Valefor','Zhor','Adriorn','Bavor','Dorim','Eldrin','Frar','Glinn','Hamath','Irongut','Jorun','Kragor','Lokrim','Mothgar','Narvi','Orod','Regin','Sindri','Tordok','Ulfgar'],
+                orc: ['Grom','Thrash','Ugluk','Mogul','Gashnak','Grishnak','Lurtz','Bolg','Azog','Boldog','Bagrak','Duguz','Frark','Ghazbag','Hakar','Karash','Lugdush','Mauhur','Narzghur','Orcben','Ragash','Shagrat','Tarbul','Ufthak','Vrath','Yazneg','Bagol','Dorbuk','Gashbag','Hukor','Korgul','Lugbur','Mogakh','Narzug','Orcobal','Razgush','Sharku','Techuk','Uglakh','Vorgaz','Yagul','Zarbag','Ashnak','Bolgul','Durgash','Felkhar','Gorbag','Horkin','Iglak','Jubayr','Krimp','Lugskul'],
+                halfling: ['Pip','Rosie','Milo','Bramble','Frodo','Bilbo','Sam','Merry','Pippin','Cotton','Andwise','Bodo','Cottar','Dob','Eglantine','Folco','Goldilocks','Hildigrad','Isengar','Jolly','Lobelia','Marigold','Nob','Otto','Peony','Ruby','Seredipity','Ted','Wiseman','Adaldrida','Balbo','Chica','Dora','Esmeralda','Ferdibrand','Gerontius','Hilda','Isembold','Jeronimia','Lily','Mosco','Nottingham','Paladin','Rosa','Sancho','Tanta','Undervale','Widow Rumble'],
+                tiefling: ['Zariel','Xaphan','Vexia','Riftan','Morthos','Nemeia','Zarathos','Orpheus','Lilith','Azzagrat','Belial','Charon','Dispater','Geryon','Hag','Incubus','Maladomini','Naaberis','OBoxius','Pazuzu','Qalith','Rakshasa','Sulkh','Thraxes','Umbra','Valac','Wyther','Xibalba','Yenoghu','Zureth','Ashmodai','Bael','Crocell','Dahak','Erinyes','Focalor','Gremory','Haures','Ipos','Jinn','Kasadya','Leraje','Malphas','Naberus','Oriax','Phenex','Raum','Shax','Tengu'],
+                dragonborn: ['Draconis','Sylvana','Pyrrus','Balasar','Kriv','Mishann','Nadarr','Torinn','Aurance','Baenraath','Clethtinthiallor','Daardendrian','Delmirev','Drakedon','Fecho','Firrel','Heskan','Kepeshkmolik','Korvurung','Pandjed','Patrin','Rhondanath','Sarax','Sulak','Tiamatra','Uaxlit','Varkhesh','YRittuul','Zarkhiis','Adaryn','Bathasuum','Cindarr','Donaar','Eldruur','Finnanar','Garrix','Halax','Illianar','Jorrin','Khaleph','Lorax','Maalther','Naergath','Othokent','Pyrathar','Qyranarath','Ronthar','Saryxa','Throden','Ulasithla'],
+                gnome: ['Fizzle','Pipwhistle','Tanglewood','Zizzle','Bimpnottin','Dimble','Eldon','Gimble','Arkenstone','Bonkin','Cog','Dimble','Fip','Gerbo','Jangle','Kem','Nock','Numbuck','Roxy','Tink','Wort','Zanna','Babbitt','Deekin','Fennas','Gimbletick','Jenny','Korin','Lurka','Milo','Nockle','Pock','Razzle','Spleen','Thistlewick','Tinkertop','Wimblewick','Boddynock','Brom','Coggnivale','Donni','Elmabell','Fidgit','Gimble','Jubilong','Kellen','Megg','Nib','Pockafwye','Rennie','Sennica','Trax','Umbodkin'],
+                last: ['Sterling','Blackwood','Stone','Whitmore','Ironforge','Moonwhisper','Silverleaf','Starweave','Goldleaf','Shadowmere','Brightblade','Darkhollow','Frostborn','Hillcrest','Riverdale','Stoneheart','Stormwind','Thornwood','Winterborne','Ashford','Blackthorn','Crossfield','Darkwater','Elderwood','Flintlock','Greymane','Hawthorne','Ironheart','Jadecrest','Kingsworth','Lightbringer','Moonvale','Northwind','Oakenshield','Phoenix','Quickwater','Ravenswood','Starfire','Thunderstone','Underhill','Valdris','Willowmere','Xander','Youngblood','Zephyrheart','Ashworth','Brightwater','Coldspire','Dawnrunner','Evergreen','Faith','Glimmer','Heartstone','Ironwood','Jade','Kingsguard','Lastlight','Mistral','Night','Obsidian'],
+                pseudo: {
+                    fighter:['The Iron Blade','Shield Breaker','Steel Wall','Battle Master','Warlord','Champion','Steel Titan','Iron Colossus','War Hammer','Blade Storm','Sword Saint','Knight Commander','Battleborn','Fury of Steel','The Unbroken','Storm breaker','Thunder Fist','Iron Warden','Blade Dancer','The Immovable'],
+                    wizard:['The Arcane Sage','Spell Weaver','Mystic Oracle','Lorekeeper','Archmage','The Celestial','Mindfire','Spellbinder','Tower Keeper','Staff of Ages','The Infinite','Void Caller','Star forger','Crystal Seer','Arcane Lord','Knowledge Seeker','Elder Wizard','Mystic Eye','Enchanter Supreme','The Enigma'],
+                    rogue:['The Shadow Walker','Silent Step','Night Blade','Whisper','Ghost','Shadow Dancer','The Invisible','Phantom','Nightmare','Black Mask','Silver Dagger','Knife in the Dark','The Whisperer','Crimson Blade','Shadow Fox','Silent Death','Dagger Storm','The Phantom','Ghost Step','Night Prowler'],
+                    cleric:['The Holy Light','Faith Keeper','Divine Hand','The Blessed','Sacred Heart','Sun Cleric','Lightbringer','Heaven\'s Voice','Spirit Walker','Divine Shield','The Righteous','Holy Warrior','Cleric of Dawn','Prayer Keeper','The Pure','Heavenly Guard','Sacred Flame','Divine Oracle','Blessed Touch','The Redeemer'],
+                    paladin:['The Sacred Shield','Light Bringer','Oathbound','The Righteous','Holy Avenger','Dawn Knight','The Justicar','Golden Knight','Oath Keeper','Divine Champion','Sun Blade','The Steadfast','Silver Paladin','Shield of Light','Radiant Warrior','Oathsworn','The Protector','Temple Guard','Holy Crusader','Light\'s Warden'],
+                    ranger:['The Wild Hunt','Forest Warden','Tracker','Pathfinder','Beast Master','Swift Arrow','Nature\'s Eye','Wild Walker','Green Shadow','The Prowler','Silent Hunter','Warden of the Wild','Arrow Storm','The Pathfinder','Feral Heart','Wilderness Guide','Nature\'s Wrath','The Untamed','Woods Runner','Horizon Walker'],
+                    barbarian:['The Storm Rage','Fury Unleashed','Bonecrusher','War Cry','Mountain Breaker','Berserker King','Blood Axe','Skull Splitter','The Unchained','Rage Beast','Titan of War','Thunder Howl','Crimson Fury','Battle Beast','The Untamed','Savage Heart','Wrath of the North','Blood Storm','Feral Fury','The Raging Mountain'],
+                    bard:['The Silver Tongue','Melody Weaver','Charmcaster','The Songbird','Music Master','Voice of Enchantment','Star Song','The Entertainer','Harp of Gold','Whispering Tune','Lore Singer','The Maestro','Silver Voice','Echo of the Bards','Lute Master','Harmony Keeper','The Dazzler','Tune Weaver','Sonic Charm','The Virtuoso'],
+                    druid:['The Forest Voice','Root Warden','Grove Keeper','The Green','Nature\'s Wrath','Wild Shaper','Moon Caller','Circle Keeper','Earth Mother','Bark Skin','The Ancient','Storm Caller','Nature\'s Fury','Wild Heart','Grove Guardian','Druid of the Oak','The Primal','Verdant One','Root Master','The Eternal'],
+                    monk:['The Silent Fist','Inner Peace','Storm Palm','Zen Master','Way of the Fist','Iron Body','Crimson Palm','Temple Master','Empty Mind','Way of the Wind','Iron Palm','The Disciple','Chi Master','Stone Body','Way of the Open Hand','The Tranquil','Soul Walker','Ki Guardian','The Centered','Flowing Water'],
+                    sorcerer:['The Blood Weaver','Chaos Spark','Wild Magic','Arcane Storm','Sorcerer Supreme','Blood Origin','Talent Unbound','Chaos Bringer','The Touched','Spell Storm','Fury of Magic','Arcane Bloom','Wild Talent','The Uncaged','Mana Storm','Chaos Engine','The Unpredictable','Spellfire','Arcane Heart','The Volatile'],
+                    warlock:['The Dark Covenant','Pact Keeper','Shadow Caller','Doom Whisper','Void Walker','Dark Servant','Soul Binder','Cursed Touch','The Bound','Shadow Flame','Dark Herald','Pact Bound','Night Caller','Keeper of Secrets','The Cursed','Void Singer','Dark Whisper','Shadow Pact','Doom Bringer','The Corrupted']
+                },
+                bg: [
+                    'Born in a small village at the edge of the kingdom','Raised among the ancient ones of a distant land','The child of travelers, never knowing a permanent home','Once a member of a prestigious order','Raised in the mountains by reclusive masters',
+                    'Orphaned as a child and raised by the local blacksmith','Grew up in the bustling capital, learning the ways of the streets','Found abandoned in the ruins of an ancient temple','Born during a great storm that tore the village apart','Spent years as an apprentice to a traveling merchant',
+                    'Raised by druids in a sacred grove far from civilization','Rescued from a shipwreck and raised by fishermen','Child of nobility who renounced their title','Descendant of a lost bloodline with a mysterious heritage','Was a squire to a knight before tragedy struck',
+                    'Grew up in the sewers and alleys of a great city','Found an ancient tome that awakened dormant powers','Saved from execution by a wandering monk','Survived a plague that took the rest of their family','Was chosen by a dying wizard as their successor',
+                    'Born in a monastery high in the mountains','Escaped from slavery and built a new life','Wandered the wilderness alone since childhood','Apprenticed to an alchemist with dark secrets','Discovered they were switched at birth with a royal heir',
+                    'Raised by wolves in the deep forest','A former soldier who deserted after a terrible war','The last survivor of a destroyed village','Trained by assassins but chose a different path','Born under a rare celestial alignment with a prophecy',
+                    'Grew up performing in traveling circuses and carnivals','Left their homeland to escape an arranged marriage','Was cursed as a child and seeks to break the spell','A scholar who discovered forbidden knowledge','Found an ancient artifact that changed their destiny',
+                    'Born during an eclipse when the veil between worlds thinned','Trained by a secret society of monster hunters','The child of two rival noble houses, shunned by both','Survived being lost in the Feywild for seven years','Was blessed by an angel at birth with unknown powers'
+                ],
+                story: [
+                    'Through years of training and hardship, they developed exceptional skills',
+                    'Their reputation precedes them, and many tales are told of their exploits',
+                    'They set out to make a name for themselves',
+                    'Their journey has taken them through dark forests and ancient ruins',
+                    'Now they seek new adventures and greater challenges',
+                    'Fate has drawn them to this moment, where destiny awaits',
+                    'They carry the weight of a promise made long ago',
+                    'A burning desire for revenge drives them ever forward',
+                    'They seek to unravel the mysteries of their past',
+                    'The call of adventure was too strong to ignore',
+                    'They have traveled far and wide, gathering knowledge and power',
+                    'Something dark lurks in their past, driving them to redemption',
+                    'They seek to prove themselves worthy of a legendary legacy',
+                    'A prophecy speaks of their role in events yet to unfold',
+                    'They wander the world seeking meaning and purpose',
+                    'Honor and duty guide their every step',
+                    'They have seen too much to remain idle while darkness spreads',
+                    'Their heart yearns for the freedom of the open road',
+                    'They carry a secret that could change the world',
+                    'They have survived trials that would have broken lesser souls',
+                    'Driven by curiosity, they seek the unknown corners of the realm',
+                    'They honor the memory of those they could not save',
+                    'A mentor once told them they were destined for greatness',
+                    'They fight to protect those who cannot protect themselves',
+                    'The stars themselves seem to guide their path forward',
+                    'They have tasted defeat and emerged stronger for it',
+                    'Each day brings them closer to understanding their true nature',
+                    'They seek to restore honor to a family name tarnished by betrayal',
+                    'An ancient evil stirs, and they alone seem to sense its coming',
+                    'They have sworn an oath that cannot be broken'
+                ]
+            },
+            fr: {
+                human: ['Marc','Eleanor','Gerard','Lyra','Aldric','Brenna','Cedric','Dara','Eldric','Freya','Helene','Idris','Kael','Luna','Magnus','Nadia','Orion','Petra','Rowan','Soren','Arnaud','Beatrice','Clement','Diane','Etienne','Francoise','Gilles','Helene','Jacques','Karine','Laurent','Marie','Nicole','Olivier','Pierre','Quentin','Raphael','Sylvie','Thomas','Vivienne'],
+                elf: ['Elara','Thalion','Aelindra','Silvanus','Miriel','Galadriel','Celebrian','Arwen','Luthien','Thranduil','Faelar','Elendil','Gil-galad','Idril','Laurelin','Mahtan','Nimrodel','Oropher','Rivendell','Silivros'],
+                dwarf: ['Thorin','Balin','Dwalin','Fili','Kili','Gimli','Durin','Gloin','Oin','Bofur','Bombur','Nori','Azaghal','Barin','Dain','Einkil','Frerin','Gror','Ironfoot','Kazakum','Mardin'],
+                orc: ['Grom','Thrash','Ugluk','Mogul','Gashnak','Grishnak','Lurtz','Bolg','Azog','Boldog','Bagrak','Duguz','Ghazbag','Hakar','Karash','Lugdush','Mauhur','Shagrat','Ufthak','Yazneg'],
+                halfling: ['Pip','Rosie','Milo','Bramble','Frodon','Bilbo','Sam','Merry','Pippin','Cotton','Andwise','Bodo','Cottar','Dob','Folco','Goldilocks','Jolly','Lobelia','Marigold','Peony'],
+                tiefling: ['Zariel','Xaphan','Vexia','Riftan','Morthos','Nemeia','Zarathos','Orphee','Lilith','Azzagrat','Belial','Charon','Dispater','Geryon','Incubus','Pazuzu','Rakshasa','Valac','Wyther','Yenoghu'],
+                dragonborn: ['Draconis','Sylvana','Pyrrhus','Balasar','Kriv','Mishann','Nadarr','Torinn','Aurance','Baenraath','Clethtinthiallor','Daardendrian','Drakedon','Fecho','Heskan','Kepeshkmolik','Pandjed','Sarax','Tiamatra','Varkhesh'],
+                gnome: ['Fizzle','Sifflet','Boissec','Zizzle','Bimpnottin','Dimble','Eldon','Gimble','Arkenstone','Bonkin','Cog','Fip','Gerbo','Jangle','Kem','Nock','Numbuck','Roxy','Tink','Wort'],
+                last: ['Sterling','Boisnoir','Pierre','Blanchet','Ferforge','Lunemurmure','Feuillearg','Etoile','Feuilledor','Ombremer','Lamebrillante','Coeurpierre','Tempete','Aubel','Barrois','Chevalier','Dubreuil','Fontaine','Leblanc','Moreau'],
+                pseudo: {
+                    fighter:['La Lame de Fer','Briseur de Bouclier','Mur d\'Acier','Maitre de Bataille','Guerrier d\'Acier','Le Titan','Maitre d\'Armes','La Tempete de Fer'],
+                    wizard:['Le Sage Arcanique','Tisserand de Sorts','Oracle Mystique','Archimage','Le Celestial','L\'Enchanteur','Gardien de la Tour'],
+                    rogue:['Le Marcheur d\'Ombre','Pas Silencieux','Lame de Nuit','Le Fantome','Danseur d\'Ombre','L\'Invisible','Couteau Noir'],
+                    cleric:['La Lumiere Sainte','Gardien de la Foi','Main Divine','Le Beni','Coeur Sacre','Guerisseur Sacre','Porteur de Lumiere'],
+                    paladin:['Le Bouclier Sacre','Porteur de Lumiere','Le Juste','Champion Divin','Chevalier d\'Or','Le Courageux','Croise Sacre'],
+                    ranger:['La Chasse Sauvage','Gardien de la Foret','Pisteur','Maitre des Betes','Flche Silencieuse','Le Faucon','Chasseur de Nuit'],
+                    bard:['La Langue d\'Argent','Tisserand de Melodie','Enchanteur','Le Rossignol','Joueur de Harpe','Voix d\'Argent'],
+                    druid:['La Voix de la Foret','Colere de la Nature','Gardien du Bois','Forme Sauvage','Tisseur de Nature','Le Verdoyant'],
+                    monk:['Le Poing Silencieux','Paix Interieure','Maitre Zen','Main de Fer','Corps de Pierre','Le Tranquille'],
+                    sorcerer:['Le Tisserand de Sang','Etincelle du Chaos','Magie Sauvage','Tempete Arcane','Le Touche','Coeur de Feu'],
+                    warlock:['Le Pacte Sombre','Gardien du Pacte','Murmure de Malheur','Herald des Ombres','Le Maudit','Liant des Ames']
+                },
+                bg: ['Ne dans un petit village a la frontiere du royaume','Eleve parmi les anciens d\'une terre lointaine','Enfant de voyageurs, ne connaissant jamais de foyer permanent','Ancien membre d\'un ordre prestigieux','Eleve dans les montagnes par des maitres reclus','Orphelin eleve par le forgeron du village','Enfant de noblesse ayant renonce a son titre','Sauve d\'un naufrage et eleve par des pecheurs'],
+                story: ['A travers des annees d\'entrainement, ils ont developpe des competences exceptionnelles','Leur reputation les precede','Ils se sont lances pour se faire un nom','Leur voyage les a mene a travers des forets sombres et des ruines','Maintenant, ils cherchent de nouvelles aventures','Le destin les a menes a ce moment','Ils portent le poids d\'une promesse faite il y a longtemps']
+            },
+            de: {
+                human: ['Marcus','Elena','Gareth','Lyra','Aldric','Brenna','Cedric','Dara','Eldric','Freya','Helena','Idris','Kael','Luna','Magnus','Nadia','Orion','Petra','Rowan','Soren','Adalbert','Brigitte','Conrad','Dorothea','Egon','Friedrich','Greta','Hans','Ingrid','Johann','Klara','Ludwig','Margarete','Nikolaus','Otto','Petra','Rudolf','Sigrid','Theodor','Ulrike'],
+                elf: ['Elara','Thalion','Aelindra','Silvanus','Miriel','Galadriel','Celebrian','Arwen','Luthien','Thranduil','Faelar','Elendil','Gil-galad','Idril','Laurelin','Nimrodel','Rivendell','Silivros','Thranduil','Windrunner'],
+                dwarf: ['Thorin','Balin','Dwalin','Fili','Kili','Gimli','Durin','Gloin','Oin','Bofur','Bombur','Nori','Azaghal','Barin','Dain','Einkil','Frerin','Gror','Ironfoot','Kazakum'],
+                orc: ['Grom','Thrash','Ugluk','Mogul','Gashnak','Grishnak','Lurtz','Bolg','Azog','Boldog','Bagrak','Duguz','Ghazbag','Hakar','Karash','Lugdush','Shagrat','Ufthak','Vrath','Yazneg'],
+                halfling: ['Pip','Rosie','Milo','Bramble','Frodo','Bilbo','Sam','Merry','Pippin','Cotton','Andwise','Bodo','Cottar','Dob','Folco','Goldilocks','Jolly','Lobelia','Marigold','Peony'],
+                tiefling: ['Zariel','Xaphan','Vexia','Riftan','Morthos','Nemeia','Zarathos','Orpheus','Lilith','Azzagrat','Belial','Charon','Dispater','Geryon','Incubus','Pazuzu','Rakshasa','Valac','Wyther','Yenoghu'],
+                dragonborn: ['Draconis','Sylvana','Pyrrus','Balasar','Kriv','Mishann','Nadarr','Torinn','Aurance','Baenraath','Clethtinthiallor','Daardendrian','Drakedon','Fecho','Heskan','Kepeshkmolik','Pandjed','Sarax','Tiamatra','Varkhesh'],
+                gnome: ['Fizzle','Pfeifen','Tanglewood','Zizzle','Bimpnottin','Dimble','Eldon','Gimble','Arkenstone','Bonkin','Cog','Fip','Gerbo','Jangle','Kem','Nock','Numbuck','Roxy','Tink','Wort'],
+                last: ['Sterling','Schwarzholz','Stein','Eisenberg','Mondflusterer','Silberblatt','Sternenweb','Goldblatt','Schattenmeer','Hellklinge','Steinherz','Sturmwind','Dornholz','Winterborne','Adlerstein','Bergmann','Eisenfaust','Falkenrad','Goldhammer','Wolfslager'],
+                pseudo: {
+                    fighter:['Die Eisenklinge','Schildbrecher','Stahlwand','Kriegsmeister','Eiserner Riese','Klingensturm','Der Unbezwingbare'],
+                    wizard:['Der Arkane Weise','Zauberweber','Orakel','Wissenshuter','Sternenseher','Der Unendliche','Kristallseher'],
+                    rogue:['Der Schattenwandler','Stiller Schritt','Nachtklinge','Der Phantom','Schattenanger','Dolchsturm','Geisterschritt'],
+                    cleric:['Das Heilige Licht','Glaubenshuter','Gottliche Hand','Sonnenpriester','Der Reine','Himmelswache','Gesegnete Beruhrung'],
+                    paladin:['Der Heilige Schild','Lichtbringer','Der Rechtschaffende','Guldenritter','Der Standhafte','Schutzengel','Heiliger Kreuzritter'],
+                    ranger:['Die Wilde Jagd','Waldhuter','Pfadfinder','Wildnisfuhrer','Wilder Falke','Naturwacht','Horizontwandler'],
+                    bard:['Die Silberne Zunge','Melodienweber','Der Sanger','Harfenspieler','Zauberharfe','Stimmchen','Tongeber'],
+                    druid:['Die Waldstimme','Naturzorn','Hainwahrer','Wilde Form','Sturmrufer','Der Grune','Wurzelmeister'],
+                    monk:['Die Stille Faust','Innerer Frieden','Zenmeister','Eiserne Hand','Steinkorper','Der Ausgeglichene','Wasserstil'],
+                    sorcerer:['Der Blutweber','Chaosfunke','Wilde Magie','Arkansturm','Der Beruhrte','Chaosbringer','Zauberfeuer'],
+                    warlock:['Der Dunkle Pakt','Paktwahrer','Schattenrufer','Schattenflamme','Der Verfluchte','Paktgebundener','Botschafter der Nacht']
+                },
+                bg: ['In einem kleinen Dorf am Rande des Konigreichs geboren','Unter den Alten eines fernen Landes aufgewachsen','Als Kind von Reisenden ohne festes Zuhause','Einst Mitglied eines renommierten Ordens','In den Bergen von zuruckgezogenen Meistern aufgezogen','Waise aufgewachsen und vom Schmied erzogen','Geboren als Adeliger, der seinen Titel aufgab','Von Fischern gerettet und aufgezogen'],
+                story: ['Durch Jahre des Trainings entwickelten sie aussergewohnliche Fahigkeiten','Ihr Ruf eilt ihnen voraus','Sie machten sich auf einen Namen zu machen','Ihre Reise fuhrte sie durch dunkle Walder und Ruinen','Nun suchen sie neue Abenteuer','Das Schicksal hat sie an diesen Punkt gefuhrt','Sie tragen das Gewicht eines alten Versprechens']
+            },
+            es: {
+                human: ['Marco','Elena','Gareth','Lyra','Aldric','Brenna','Cedric','Dara','Eldric','Freya','Helena','Idris','Kael','Luna','Magnus','Nadia','Orion','Petra','Rowan','Soren','Alejandro','Beatriz','Carlos','Diana','Eduardo','Francisco','Guadalupe','Hugo','Isabel','Jorge','Laura','Miguel','Natalia','Oscar','Pablo','Ramon','Sofia','Teresa','Victor','Ximena'],
+                elf: ['Elara','Thalion','Aelindra','Silvanus','Miriel','Galadriel','Celebrian','Arwen','Luthien','Thranduil','Faelar','Elendil','Gil-galad','Idril','Laurelin','Nimrodel','Rivendell','Silivros','Thranduil','Windrunner'],
+                dwarf: ['Thorin','Balin','Dwalin','Fili','Kili','Gimli','Durin','Gloin','Oin','Bofur','Bombur','Nori','Azaghal','Barin','Dain','Einkil','Frerin','Gror','Ironfoot','Kazakum'],
+                orc: ['Grom','Thrash','Ugluk','Mogul','Gashnak','Grishnak','Lurtz','Bolg','Azog','Boldog','Bagrak','Duguz','Ghazbag','Hakar','Karash','Lugdush','Shagrat','Ufthak','Vrath','Yazneg'],
+                halfling: ['Pip','Rosie','Milo','Bramble','Frodo','Bilbo','Sam','Merry','Pippin','Cotton','Andwise','Bodo','Cottar','Dob','Folco','Goldilocks','Jolly','Lobelia','Marigold','Peony'],
+                tiefling: ['Zariel','Xaphan','Vexia','Riftan','Morthos','Nemeia','Zarathos','Orpheus','Lilith','Azzagrat','Belial','Charon','Dispater','Geryon','Incubus','Pazuzu','Rakshasa','Valac','Wyther','Yenoghu'],
+                dragonborn: ['Draconis','Sylvana','Pyrrus','Balasar','Kriv','Mishann','Nadarr','Torinn','Aurance','Baenraath','Clethtinthiallor','Daardendrian','Drakedon','Fecho','Heskan','Kepeshkmolik','Pandjed','Sarax','Tiamatra','Varkhesh'],
+                gnome: ['Fizzle','Silbato','Tanglewood','Zizzle','Bimpnottin','Dimble','Eldon','Gimble','Arkenstone','Bonkin','Cog','Fip','Gerbo','Jangle','Kem','Nock','Numbuck','Roxy','Tink','Wort'],
+                last: ['Sterling','BosqueNegro','Piedra','HierroForja','LunaSusurro','PlataHoja','Crepusculo','HojaDorada','Sombrerio','HojaBrillante','CorazonPiedra','VientoTormenta','Winterborne','Aguila','Becerro','Castillo','Dorado','Estrella','Flores','Guzman'],
+                pseudo: {
+                    fighter:['La Espada de Hierro','RompeEscudos','Pared de Acero','Campeon de Guerra','El Titan','Tormeta de Acero','Inamovible'],
+                    wizard:['El Sabio Arcano','Tejedor de Hechizos','Oraculo Mistico','Archimago','El Celestial','Buscador de Conocimiento'],
+                    rogue:['El Caminante de Sombras','Paso Silencioso','Espada de Noche','El Fantasma','Danzante de Sombras','Cuchillo en la Oscuridad'],
+                    cleric:['La Luz Santa','Guardian de la Fe','Mano Divina','El Bendito','Corazon Sagrado','Portador de Luz'],
+                    paladin:['El Escudo Sagrado','Portador de Luz','El Justiciero','Campeon Divino','Caballero de Oro','La Cruzada Sagrada'],
+                    ranger:['La Caza Salvaje','Guardian del Bosque','Rastreador','Maestro de Bestias','Flecha Silenciosa','Cazador de la Noche'],
+                    bard:['La Lengua de Plata','Tejedor de Melodias','El Cantor','Rapsoda','Jugador de Arpas','Voz de Encantamiento'],
+                    druid:['La Voz del Bosque','Ira de la Naturaleza','El Verde','Forma Salvaje','Tejedor de Naturaleza','Guardian del Roble'],
+                    monk:['El Punho Silencioso','Paz Interior','Maestro Zen','Mano de Hierro','Cuerpo de Piedra','El Sereno'],
+                    sorcerer:['El Tejedor de Sangre','Chispa del Caos','Magia Salvaje','Tormenta Arcana','El Tocado','Corazon de Fuego'],
+                    warlock:['El Pacto Oscuro','Guardian del Pacto','Susurro de Perdicion','Herald de las Sombras','El Maldecido','Atador de Almas']
+                },
+                bg: ['Nacido en una pequena aldea en el borde del reino','Criado entre los antiguos de una tierra lejana','Hijo de viajeros sin hogar permanente','Miembro de una orden prestigiosa','Criado en las montanhas por maestros reclusos','Huérfano criado por el herrero del pueblo','Hijo de nobleza que renuncio a su titulo','Salvado de un naufragio y criado por pescadores'],
+                story: ['A traves de anos de entrenamiento desarrollaron habilidades excepcionales','Su reputacion los precede','Se aventuraron para hacerse un nombre','Su viaje los llevo a traves de bosques oscuros y ruinas','Ahora buscan nuevas aventuras','El destino los trajo a este momento','Llevan el peso de una promesa hecha hace mucho tiempo']
+            }
+        };
+
+        function _charDict() { return _CD[(localStorage.getItem('preferredLanguage')||'en').split('-')[0]] || _CD.en; }
+        function _pick(a) { return a[Math.floor(Math.random()*a.length)]; }
+
+        function randomizeRace() {
+            var races = ['Human','Elf','Dwarf','Orc','Halfling','Tiefling','Dragonborn','Gnome'];
+            document.getElementById('CharacterRace').value = _pick(races);
+        }
+
+        function randomizeClass() {
+            var classes = ['Fighter','Wizard','Rogue','Cleric','Paladin','Ranger','Barbarian','Bard','Druid','Monk','Sorcerer','Warlock'];
+            document.getElementById('CharacterClass').value = _pick(classes);
+        }
+
+        function randomizeRole() {
+            var roles = ['None','Ally','Antagonist','Merchant','Quest Giver','Informant','Henchman'];
+            document.getElementById('CharacterRole').value = _pick(roles);
+        }
+
+        function generateCharacterName() {
+            var d = _charDict();
+            var race = (document.getElementById('CharacterRace').value || 'human').toLowerCase();
+            var firsts = d[race] || d.human;
+            var name = _pick(firsts) + ' ' + _pick(d.last);
+            document.getElementById('CharacterName').value = name;
+        }
+
+        function generateCharacterPseudo() {
+            var d = _charDict();
+            var cls = (document.getElementById('CharacterClass').value || 'fighter').toLowerCase();
+            var list = d.pseudo[cls] || d.pseudo.fighter;
+            document.getElementById('CharacterPseudo').value = _pick(list);
+        }
+
+        function generateCharacterDescription() {
+            var d = _charDict();
+            var race = document.getElementById('CharacterRace').value || 'Human';
+            var cls = document.getElementById('CharacterClass').value || 'Fighter';
+            var pseudo = document.getElementById('CharacterPseudo').value || '';
+            var name = document.getElementById('CharacterName').value || _pick(d.human) + ' ' + _pick(d.last);
+            var bg = _pick(d.bg);
+            var story = _pick(d.story);
+            
+            // Build description with race and class included
+            var desc = race + ' ' + cls + ' - ' + name;
+            if (pseudo) desc += ' "' + pseudo + '"';
+            desc += '. ';
+            desc += bg + '. ';
+            desc += story + '.';
+            document.getElementById('CharacterDescription').value = desc;
+        }
+
+        function regenerateDescription() {
+            generateCharacterDescription();
+        }
+
+        // Radar Chart
+        function updateRadarChart() {
+            const canvas = document.getElementById('radarCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = Math.min(centerX, centerY) - 30;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const stats = ['Strength', 'Agility', 'Health', 'Intelligence', 'Charisma', 'Endurance'];
+            const values = stats.map(s => parseInt(document.getElementById(s).value) || 0);
+            const numStats = stats.length;
+            const angleStep = (2 * Math.PI) / numStats;
+            
+            const statLabels = stats;
+            
+            // Draw spiderweb grid
+            const levels = 5;
+            ctx.strokeStyle = 'rgba(139, 92, 246, 0.3)';
+            ctx.lineWidth = 1;
+            
+            for (let level = 1; level <= levels; level++) {
+                const levelRadius = (radius / levels) * level;
+                ctx.beginPath();
+                for (let i = 0; i <= numStats; i++) {
+                    const angle = i * angleStep - Math.PI / 2;
+                    const x = centerX + levelRadius * Math.cos(angle);
+                    const y = centerY + levelRadius * Math.sin(angle);
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.closePath();
+                ctx.stroke();
+            }
+            
+            // Draw axes
+            ctx.strokeStyle = 'rgba(139, 92, 246, 0.5)';
+            for (let i = 0; i < numStats; i++) {
+                const angle = i * angleStep - Math.PI / 2;
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.lineTo(centerX + radius * Math.cos(angle), centerY + radius * Math.sin(angle));
+                ctx.stroke();
+            }
+            
+            // Draw labels
+            ctx.fillStyle = '#d4a843';
+            ctx.font = 'bold 10px Arial';
+            ctx.textAlign = 'center';
+            for (let i = 0; i < numStats; i++) {
+                const angle = i * angleStep - Math.PI / 2;
+                const labelRadius = radius + 18;
+                const x = centerX + labelRadius * Math.cos(angle);
+                const y = centerY + labelRadius * Math.sin(angle);
+                ctx.fillText(statLabels[i], x, y + 4);
+            }
+            
+            // Draw data polygon
+            ctx.beginPath();
+            for (let i = 0; i <= numStats; i++) {
+                const idx = i % numStats;
+                const angle = idx * angleStep - Math.PI / 2;
+                const value = values[idx];
+                const valueRadius = (value / 20) * radius;
+                const x = centerX + valueRadius * Math.cos(angle);
+                const y = centerY + valueRadius * Math.sin(angle);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            
+            const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
+            gradient.addColorStop(0, 'rgba(139, 92, 246, 0.5)');
+            gradient.addColorStop(1, 'rgba(212, 168, 67, 0.3)');
+            ctx.fillStyle = gradient;
+            ctx.fill();
+            
+            ctx.strokeStyle = '#d4a843';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // Draw points
+            for (let i = 0; i < numStats; i++) {
+                const angle = i * angleStep - Math.PI / 2;
+                const value = values[i];
+                const valueRadius = (value / 20) * radius;
+                const x = centerX + valueRadius * Math.cos(angle);
+                const y = centerY + valueRadius * Math.sin(angle);
+                
+                ctx.beginPath();
+                ctx.arc(x, y, 5, 0, 2 * Math.PI);
+                ctx.fillStyle = '#d4a843';
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+        }
+
+        // Toggle NPC Roles
+        function toggleNPCRoles() {
+            const type = document.getElementById('CharacterType').value;
+            document.getElementById('npcRoleSection').style.display = type === '1' ? 'block' : 'none';
+        }
+
+        // Image handling using ImageProcessor
+        async function handleImageUpload(input) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                
+                if (!ImageProcessor.isValidImage(file)) {
+                    alert('Please select a valid image file (JPEG, PNG, GIF, or WebP)');
+                    return;
+                }
+                
+                try {
+                    showLoading('Processing image...');
+                    
+                    const result = await ImageProcessor.processImage(file, {
+                        maxWidth: 1024,
+                        maxHeight: 1024,
+                        quality: 0.85,
+                        contentType: 'image/jpeg',
+                        cropToSquare: false
+                    });
+                    
+                    ImageProcessor.showPreview('imagePreviewContainer', 'characterImagePreview', result.dataUrl);
+                    
+                    document.getElementById('PortraitUrl').value = '';
+                    document.getElementById('PortraitData').value = result.base64;
+                    document.getElementById('PortraitContentType').value = result.contentType;
+                    
+                    hideLoading();
+                } catch (error) {
+                    hideLoading();
+                    alert('Error processing image: ' + error.message);
+                }
+            }
+        }
+
+        function removeImage() {
+            ImageProcessor.clearPreview('imagePreviewContainer', 'characterImagePreview');
+            document.getElementById('PortraitUrl').value = '';
+            document.getElementById('PortraitData').value = '';
+            document.getElementById('PortraitContentType').value = '';
+            document.getElementById('characterImageUpload').value = '';
+        }
+
+        // Loading overlay
+        function showLoading(text) {
+            document.getElementById('loadingText').textContent = text;
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.add('hidden');
+        }
+
+    // Autocomplete functionality
+    function setupAutocomplete(inputId, dropdownId, itemsObj, onSelect) {
+        const input = document.getElementById(inputId);
+        const dropdown = document.getElementById(dropdownId);
+        
+        input.addEventListener('input', debounce(function() {
+            const value = this.value.toLowerCase();
+            if (value.length < 1) {
+                dropdown.classList.remove('show');
+                return;
+            }
+            
+            // Get localized strings
+            const items = Object.keys(itemsObj).map(k => {
+                return { key: k, text: getLocalizedValue(itemsObj, k) };
             });
-            calculateUsedPoints();
-            updateRadarChart();
+            
+            const matches = items.filter(item => item.text.toLowerCase().includes(value)).slice(0, 10);
+            
+            if (matches.length > 0) {
+                dropdown.innerHTML = matches.map(item => 
+                    `<div class="autocomplete-item" onclick="selectAutocomplete('${inputId}', '${dropdownId}', '${item.text}', '${item.key}')">${item.text}</div>`
+                ).join('');
+                dropdown.classList.add('show');
+            } else {
+                dropdown.classList.remove('show');
+            }
+        }, 200));
+        
+        input.addEventListener('blur', () => {
+            setTimeout(() => dropdown.classList.remove('show'), 200);
         });
+    }
+
+    function selectAutocomplete(inputId, dropdownId, value, rawKey) {
+        const input = document.getElementById(inputId);
+        input.value = value;
+        input.dataset.rawKey = rawKey;
+        document.getElementById(dropdownId).classList.remove('show');
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+        calculateUsedPoints();
+        updateRadarChart();
+        
+        // Setup autocomplete
+        if (typeof RPG_RACES !== 'undefined' && Object.keys(RPG_RACES).length > 0) {
+            setupAutocomplete('CharacterRace', 'raceDropdown', RPG_RACES);
+        }
+        if (typeof RPG_CLASSES !== 'undefined' && Object.keys(RPG_CLASSES).length > 0) {
+            setupAutocomplete('CharacterClass', 'classDropdown', RPG_CLASSES);
+        }
+        if (typeof RPG_ROLES !== 'undefined' && Object.keys(RPG_ROLES).length > 0) {
+            setupAutocomplete('CharacterRole', 'roleDropdown', RPG_ROLES);
+        }
+    });
     </script>
 }
+

@@ -2,10 +2,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using TheChronicler.Web.Models;
-using TheChronicler.Web.Services;
+using ChroniclerWeb.Data;
+using ChroniclerWeb.Models;
+using ChroniclerWeb.Services;
+using ChroniclerWeb.Services.AIGameMasterService;
 
-namespace TheChronicler.Web.Pages.AIGM
+
+namespace ChroniclerWeb.Pages.AIGM
 {
     [Authorize]
     public class IndexModel : PageModel

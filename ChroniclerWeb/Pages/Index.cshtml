@@ -4,56 +4,93 @@
     ViewData["Title"] = "Home";
 }
 
-<div class="hero-section">
-    <i class="bi bi-book" style="font-size: 4rem; color: var(--chr-gold);"></i>
+<div class="hero-section tilt-card">
+    <div class="hero-icon">
+        <i class="bi bi-book"></i>
+    </div>
     <h1>The Chronicler</h1>
-    <p class="lead">A structured campaign intelligence system for tabletop role-playing games.</p>
+    <p class="lead">Your Campaign Intelligence System</p>
     <p>Record sessions. Organize characters, NPCs, locations, and events. Track story arcs. Maintain campaign continuity.</p>
-    <div class="mt-4">
+    <div class="mt-4 d-flex justify-content-center gap-3 flex-wrap">
         @if (User.Identity?.IsAuthenticated == true)
         {
-            <a asp-page="/Dashboard/Index" class="btn btn-chronicle btn-lg me-2">
-                <i class="bi bi-speedometer2 me-1"></i>Go to Dashboard
+            <a asp-page="/Dashboard/Index" class="btn btn-chronicle btn-lg interactive-link">
+                <i class="bi bi-speedometer2 me-2"></i>Open Dashboard
             </a>
         }
         else
         {
-            <a asp-page="/Account/Register" class="btn btn-chronicle btn-lg me-2">
-                <i class="bi bi-person-plus me-1"></i>Get Started
+            <a asp-page="/Account/Register" class="btn btn-chronicle btn-lg interactive-link">
+                <i class="bi bi-person-plus me-2"></i>Begin Your Journey
             </a>
-            <a asp-page="/Account/Login" class="btn btn-outline-chronicle btn-lg">
-                <i class="bi bi-box-arrow-in-right me-1"></i>Login
+            <a asp-page="/Account/Login" class="btn btn-outline-chronicle btn-lg interactive-link">
+                <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
             </a>
         }
     </div>
 </div>
 
+<div class="section-header mt-5">
+    <h3>Features</h3>
+    <div class="section-header-line"></div>
+</div>
+
 <div class="row g-4 mb-4">
     <div class="col-md-4">
-        <div class="card h-100">
-            <div class="card-body text-center p-4">
-                <i class="bi bi-journal-text" style="font-size: 2.5rem; color: var(--chr-gold);"></i>
-                <h5 class="mt-3">Session Logging</h5>
-                <p class="text-muted">Record every session with structured notes, tag characters and locations, and mark key events.</p>
+        <div class="feature-card tilt-card">
+            <div class="feature-card-icon">
+                <i class="bi bi-journal-text"></i>
             </div>
+            <h5>Session Logging</h5>
+            <p>Record every session with structured notes, tag characters and locations, and mark key events for your campaign history.</p>
         </div>
     </div>
     <div class="col-md-4">
-        <div class="card h-100">
-            <div class="card-body text-center p-4">
-                <i class="bi bi-people" style="font-size: 2.5rem; color: var(--chr-gold);"></i>
-                <h5 class="mt-3">Entity Management</h5>
-                <p class="text-muted">Organize characters, NPCs, locations, and events with full status tracking and cross-referencing.</p>
+        <div class="feature-card tilt-card">
+            <div class="feature-card-icon">
+                <i class="bi bi-people"></i>
             </div>
+            <h5>Entity Management</h5>
+            <p>Organize characters, NPCs, locations, and events with full status tracking and cross-referencing capabilities.</p>
         </div>
     </div>
     <div class="col-md-4">
-        <div class="card h-100">
-            <div class="card-body text-center p-4">
-                <i class="bi bi-clock-history" style="font-size: 2.5rem; color: var(--chr-gold);"></i>
-                <h5 class="mt-3">Timeline View</h5>
-                <p class="text-muted">Visualize your campaign chronologically with key event markers and quick session navigation.</p>
+        <div class="feature-card tilt-card">
+            <div class="feature-card-icon">
+                <i class="bi bi-clock-history"></i>
             </div>
+            <h5>Timeline View</h5>
+            <p>Visualize your campaign chronologically with key event markers and quick session navigation for easy reference.</p>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-4">
+        <div class="feature-card tilt-card">
+            <div class="feature-card-icon">
+                <i class="bi bi-map"></i>
+            </div>
+            <h5>World Building</h5>
+            <p>Create detailed locations with maps, descriptions, and connections to your campaign events and characters.</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="feature-card tilt-card">
+            <div class="feature-card-icon">
+                <i class="bi bi-chat-dots"></i>
+            </div>
+            <h5>Forum System</h5>
+            <p>Engage with your party through campaign-specific forums. Discuss storylines, plan sessions, and share discoveries.</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="feature-card tilt-card">
+            <div class="feature-card-icon">
+                <i class="bi bi-robot"></i>
+            </div>
+            <h5>AI Assistance</h5>
+            <p>Leverage AI-powered tools to generate character names, descriptions, and story ideas to enhance your gaming experience.</p>
         </div>
     </div>
 </div>

@@ -1,5 +1,5 @@
 @page "/achievements"
-@model TheChronicler.Web.Pages.Achievements.IndexModel
+@model ChroniclerWeb.Pages.Achievements.IndexModel
 @{
     ViewData["Title"] = "Achievements";
 }
@@ -14,11 +14,11 @@
         border: 1px solid var(--chr-gold);
     }
 
-    .achievements-header h1 {
-        color: var(--chr-gold);
-        font-size: 2.5rem;
-        margin-bottom: 10px;
-    }
+        .achievements-header h1 {
+            color: var(--chr-gold);
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
 
     .stats-row {
         display: flex;
@@ -39,14 +39,14 @@
         color: #1a1a2e;
     }
 
-    .stat-circle .number {
-        font-size: 2rem;
-        font-weight: bold;
-    }
+        .stat-circle .number {
+            font-size: 2rem;
+            font-weight: bold;
+        }
 
-    .stat-circle .label {
-        font-size: 0.75rem;
-    }
+        .stat-circle .label {
+            font-size: 0.75rem;
+        }
 
     .achievement-category {
         margin-bottom: 30px;
@@ -76,18 +76,18 @@
         transition: all 0.3s;
     }
 
-    .achievement-card:hover {
-        border-color: var(--chr-gold);
-        transform: translateY(-2px);
-    }
+        .achievement-card:hover {
+            border-color: var(--chr-gold);
+            transform: translateY(-2px);
+        }
 
-    .achievement-card.completed {
-        border-color: var(--chr-gold);
-    }
+        .achievement-card.completed {
+            border-color: var(--chr-gold);
+        }
 
-    .achievement-card.locked {
-        opacity: 0.6;
-    }
+        .achievement-card.locked {
+            opacity: 0.6;
+        }
 
     .achievement-icon {
         width: 60px;

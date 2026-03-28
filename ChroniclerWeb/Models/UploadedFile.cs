@@ -22,17 +22,20 @@ namespace ChroniclerWeb.Models
         [Required, MaxLength(500)]
         public string FileName { get; set; } = string.Empty;
 
-        [Required, MaxLength(50)]
+        [Required, MaxLength(100)]
         public string ContentType { get; set; } = string.Empty;
 
         public long FileSize { get; set; }
 
-        [MaxLength(500)]
+        [MaxLength(1000)]
         public string? Url { get; set; }
 
         public string? FileData { get; set; }
 
         public FileType Type { get; set; } = FileType.Other;
+
+        [MaxLength(1000)]
+        public string? Description { get; set; }
 
         public DateTime UploadedAt { get; set; } = DateTime.UtcNow;
 
@@ -43,18 +46,21 @@ namespace ChroniclerWeb.Models
         public ApplicationUser UploadedBy { get; set; } = null!;
 
         public int? CampaignId { get; set; }
-
-        [ForeignKey(nameof(CampaignId))]
         public Campaign? Campaign { get; set; }
 
         public int? CharacterId { get; set; }
-
-        [ForeignKey(nameof(CharacterId))]
         public Character? Character { get; set; }
 
         public int? LocationId { get; set; }
-
-        [ForeignKey(nameof(LocationId))]
         public Location? Location { get; set; }
+
+        public int? EventId { get; set; }
+        public Event? Event { get; set; }
+
+        public int? SessionId { get; set; }
+        public Session? Session { get; set; }
+
+        public int? ForumPostId { get; set; }
+        public ForumPost? ForumPost { get; set; }
     }
 }

@@ -18,6 +18,13 @@ namespace ChroniclerWeb.Models
         [MaxLength(2000)]
         public string Description { get; set; } = string.Empty;
 
+        [MaxLength(500)]
+        public string? ImageUrl { get; set; }
+
+        public string? ImageData { get; set; }
+
+        public string? ImageContentType { get; set; }
+
         public bool IsKeyEvent { get; set; } = false;
 
         public DateTime EventDate { get; set; } = DateTime.UtcNow;

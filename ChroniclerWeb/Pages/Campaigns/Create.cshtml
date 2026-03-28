@@ -1,5 +1,6 @@
 @page
-@model TheChronicler.Web.Pages.Campaigns.CreateModel
+@using ChroniclerWeb.Models
+@model ChroniclerWeb.Pages.Campaigns.CreateModel
 @{
     ViewData["Title"] = "Create Campaign";
 }
@@ -7,6 +8,14 @@
 <div class="page-header">
     <h2><i class="bi bi-plus-circle me-2"></i>Create New Campaign</h2>
 </div>
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle me-1"></i>@TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
 
 <div class="row justify-content-center">
     <div class="col-md-8">
@@ -19,8 +28,8 @@
                         <label asp-for="Campaign.Name" class="form-label">Campaign Name</label>
                         <div class="input-group">
                             <input asp-for="Campaign.Name" class="form-control" placeholder="The Lost Mines of Phandelver" id="CampaignName" />
-                            <button type="button" class="btn btn-outline-secondary" onclick="generateRandomName()">
-                                <i class="bi bi-shuffle"></i> Random
+                            <button type="button" class="btn btn-chronicle" onclick="genName()">
+                                <i class="bi bi-magic"></i> <span data-t="Random">Random</span>
                             </button>
                         </div>
                         <span asp-validation-for="Campaign.Name" class="text-danger"></span>
@@ -28,14 +37,27 @@
 
                     <div class="mb-3">
                         <label asp-for="Campaign.Description" class="form-label">Description</label>
-                        <textarea asp-for="Campaign.Description" class="form-control" rows="4" placeholder="Describe your campaign world and premise..."></textarea>
+                        <div class="d-flex gap-2 mb-2">
+                            <button type="button" class="btn btn-chronicle btn-sm" onclick="genDesc()">
+                                <i class="bi bi-magic me-1"></i> <span data-t="Generate Description">Generate Description</span>
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="genDesc()" id="regenDescBtn" style="display: none;">
+                                <i class="bi bi-arrow-clockwise me-1"></i> <span data-t="Regenerate">Regenerate</span>
+                            </button>
+                        </div>
+                        <textarea asp-for="Campaign.Description" class="form-control" rows="6" placeholder="Describe your campaign world and premise..." id="CampaignDescription"></textarea>
                         <span asp-validation-for="Campaign.Description" class="text-danger"></span>
                     </div>
 
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label asp-for="Campaign.GameSystem" class="form-label">Game System</label>
-                            <input asp-for="Campaign.GameSystem" class="form-control" placeholder="D&D 5e, Pathfinder, etc." />
+                            <div class="input-group">
+                                <input asp-for="Campaign.GameSystem" class="form-control" placeholder="D&D 5e, Pathfinder, etc." id="GameSystem" />
+                                <button type="button" class="btn btn-outline-secondary" onclick="genSystem()">
+                                    <i class="bi bi-shuffle"></i>
+                                </button>
+                            </div>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label asp-for="Campaign.Status" class="form-label">Status</label>
@@ -53,23 +75,11 @@
                                         <i class="bi bi-cloud-upload fs-1 text-muted mb-2"></i>
                                         <p class="mb-0 fw-medium">Upload Image</p>
                                         <small class="text-muted">PNG, JPG, GIF</small>
-                                        <input type="file" id="coverFile" name="CoverFile" accept="image/*" class="d-none" onchange="previewImage(this)" />
+                                        <input type="file" id="coverFile" accept="image/*" class="d-none" onchange="previewImage(this)" />
                                     </div>
                                 </div>
-                                <div class="col-md-6">
-                                    <div class="upload-option p-4 rounded border border-dashed text-center h-100 d-flex flex-column justify-content-center" style="cursor: pointer; min-height: 120px;" onclick="generateAICover()">
-                                        <i class="bi bi-magic fs-1 mb-2" style="color: var(--chr-gold);"></i>
-                                        <p class="mb-0 fw-medium">Generate with AI</p>
-                                        <small class="text-muted">Describe your theme</small>
-                                    </div>
-                                </div>
-                            </div>
-                            <div id="aiCoverPrompt" class="mt-3" style="display: none;">
-                                <div class="input-group">
-                                    <input type="text" id="coverPromptInput" class="form-control" placeholder="Describe your campaign cover (e.g., 'dark fantasy dungeon', 'epic dragon battle')..." />
-                                    <button class="btn btn-chronicle" onclick="generateCoverImage()">
-                                        <i class="bi bi-magic me-1"></i>Generate
-                                    </button>
+                                <div class="col-12 mt-3">
+                                    <input type="file" id="coverFileAlt" class="form-control" accept="image/*" onchange="handleCoverUpload(this)" />
                                 </div>
                             </div>
                             <div id="coverPreview" class="mt-3" style="display: none;">
@@ -87,10 +97,10 @@
 
                     <div class="d-flex justify-content-between">
                         <a asp-page="/Campaigns/Index" class="btn btn-outline-secondary">
-                            <i class="bi bi-arrow-left me-1"></i>Cancel
+                            <i class="bi bi-arrow-left me-1"></i><span data-t="Cancel">Cancel</span>
                         </a>
                         <button type="submit" class="btn btn-chronicle">
-                            <i class="bi bi-check-lg me-1"></i>Create Campaign
+                            <i class="bi bi-check-lg me-1"></i><span data-t="Create Campaign">Create Campaign</span>
                         </button>
                     </div>
                 </form>
@@ -100,133 +110,74 @@
 </div>
 
 @section Scripts {
-    <script>
-        function generateRandomName() {
-            const adjectives = ['Lost', 'Ancient', 'Cursed', 'Forgotten', 'Mystic', 'Dark', 'Golden', 'Shadow', 'Crimson', 'Eternal'];
-            const nouns = ['Mines', 'Kingdom', 'Realm', 'Empire', 'Chronicles', 'Saga', 'Tales', 'Quest', 'Journey', 'Legacy'];
-            const places = ['Phandelver', 'Waterdeep', 'Neverwinter', 'Baldur\'s Gate', 'Sigil', 'Ravenloft', 'Toril'];
-            
-            const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
-            const noun = nouns[Math.floor(Math.random() * nouns.length)];
-            const place = places[Math.floor(Math.random() * places.length)];
-            
-            const templates = [
-                `The ${adj} ${noun} of ${place}`,
-                `${adj} ${noun}`,
-                `${place}: The ${adj} ${noun}`,
-                `Chronicles of ${adj} ${place}`
-            ];
-            
-            document.getElementById('CampaignName').value = templates[Math.floor(Math.random() * templates.length)];
+<script>
+(function(){
+    var D = {
+        en: { prefixes:['The','Ancient','Lost','Hidden','Dark','Golden','Silver','Frozen','Shadow','Crystal','Iron','Storm','Star','Moon','Sun','Blood','Bone','Eternal','Forbidden','Sacred','Divine','Rising','Fallen','Shattered'], nouns:['Kingdom','Realm','Empire','Chronicles','Saga','Quest','Journey','Legacy','Prophecy','Legend','Myth','Odyssey','Epic','Adventure','War','Peace','Dawn','Twilight','Eternity','Destiny','Fate','Glory','Victory','Conquest','Dominion','Genesis','Apocalypse'], suffixes:['of Shadows','of Light','of Dreams','of Doom','of Hope','of the Ancients','of the Lost','of the Damned','of the Forgotten','of the Stars','of the Moon','of Winter','of the Abyss','of the Heavens'], stories:['An ancient evil stirs in the depths, threatening to consume all that lives and breathes. Heroes must rise to face this darkness before it spreads across the land.','A prophecy speaks of chosen ones who will restore balance to a fractured world. The fate of kingdoms rests upon their shoulders.','Magic fades from the realm as ancient gods slumber. Only the bravest adventurers can rekindle the flame of hope.','In a land torn by war, unlikely allies must band together to face a threat greater than any army. Their journey will test their bonds.','Dark forces conspire to unravel the fabric of reality itself. Only those with courage and cunning can stand against the tide of chaos.'] },
+        fr: { prefixes:['Le','Ancien','Perdu','Cache','Sombre','Dore','Argente','Gele','Ombre','Cristal','Fer','Tempete','Etoile','Lune','Soleil','Sang','Os','Eternel','Interdit','Sacré','Divin','Lever','Chute','Brise'], nouns:['Royaume','Empire','Chroniques','Saga','Quete','Voyage','Heritage','Prophetie','Legende','Mythe','Odyssee','Epopee','Aventure','Guerre','Paix','Aube','Crepuscule','Eternite','Destin','Gloire','Victoire','Conquete','Domination','Genese','Apocalypse'], suffixes:['d\'Ombre','de Lumiere','de Reves','de Malheur','d\'Espoir','des Anciens','des Perdus','des Damnes','des Etoiles','de la Lune','d\'Hiver','de l\'Abime','des Cieux'], stories:['Un mal ancien s\'agite dans les profondeurs, menacant de consumer tout ce qui vit. Des heros doivent se lever pour affronter cette tenebre.','Une prophetie parle d\'elus qui restaureront l\'equilibre dans un monde brise. Le destin des royaumes repose sur leurs epaules.','La magie s\'estompe du royaume alors que les dieux anciens sommeillent. Seuls les aventuriers les plus braves peuvent rallumer la flamme de l\'espoir.','Dans une terre dechiree par la guerre, des allies improbables doivent s\'unir pour affronter une menace plus grande que toute armee.','Des forces obscures complotent pour defaire le tissu meme de la realite. Seuls ceux avec courage et ruse peuvent resister au chaos.'] },
+        de: { prefixes:['Das','Der','Alte','Verlorene','Versteckte','Dunkle','Goldene','Silberne','Gefrorene','Schatten','Kristall','Eisen','Sturm','Stern','Mond','Sonne','Blut','Knochen','Ewig','Verboten','Heilig','Erwachende','Gefallen','Zerbrochen'], nouns:['Konigreich','Reich','Imperium','Chronik','Saga','Quest','Reise','Vermachtnis','Weissagung','Legende','Mythos','Odyssee','Epos','Abenteuer','Krieg','Frieden','Morgenrote','Dammerung','Ewigkeit','Schicksal','Ruhm','Sieg','Eroberung','Genesis','Apokalypse'], suffixes:['der Schatten','des Lichts','der Traume','des Verderbens','der Hoffnung','der Alten','der Verlorenen','der Verdammten','der Sterne','des Mondes','des Winters','des Abgrunds','der Himmel'], stories:['Ein uraltes Ubel regt sich in der Tiefe und droht alles Lebende zu verschlingen. Helden muss sich erheben, um diese Dunkelheit zu stellen.','Eine Weissagung spricht von Auserwahlten, die das Gleichgewicht in einer zerbrochenen Welt wiederherstellen werden.','Die Magie schwindet aus dem Reich, wahrend alte Gotter schlummern. Nur die mutigsten Abenteuerer konnen die Flamme der Hoffnung neu entfachen.','In einem vom Krieg zerrissenen Land mussen ungewohnliche Verbundete zusammenstehen, um eine Bedrohung zu bekampfen.','Dunkle Machte schmieden Plane, um das Gewebe der Realitat selbst aufzulosen.'] },
+        es: { prefixes:['El','Antiguo','Perdido','Oculto','Oscuro','Dorado','Plateado','Congelado','Sombra','Cristal','Hierro','Tormenta','Estrella','Luna','Sol','Sangre','Hueso','Eterno','Prohibido','Sagrado','Divino','Caido','Roto'], nouns:['Reino','Imperio','Cronicas','Saga','Busqueda','Viaje','Legado','Profecia','Leyenda','Mito','Odisea','Epica','Aventura','Guerra','Paz','Amanecer','Crepusculo','Eternidad','Destino','Gloria','Victoria','Conquista','Dominacion','Genesis','Apocalipsis'], suffixes:['de Sombras','de Luz','de Suenos','de Perdicion','de Esperanza','de los Antiguos','de los Perdidos','de los Condenados','de las Estrellas','de la Luna','de Invierno','del Abismo','de los Cielos'], stories:['Un mal antiguo se agita en las profundidades, amenazando con consumir todo lo que vive. Los heroes deben levantarse para enfrentar esta oscuridad.','Una profecia habla de elegidos que restauraran el equilibrio en un mundo fracturado. El destino de los reinos descansa sobre sus hombros.','La magia se desvanece del reino mientras los dioses antiguos duermen. Solo los aventureros mas valientes pueden reavivir la llama de la esperanza.','En una tierra desgarrada por la guerra, aliados improbables deben unirse para enfrentar una amenaza mayor que cualquier ejercito.'] },
+        it: { prefixes:['Il','Antico','Perso','Nascosto','Oscuro','Dorato','Argentato','Gelato','Ombra','Cristallo','Ferro','Tempesta','Stella','Luna','Sole','Sangue','Osso','Eterno','Proibito','Sacro','Divino','Nascente','Caduto','Spezzato'], nouns:['Regno','Impero','Cronache','Saga','Ricerca','Viaggio','Eredita','Profezia','Leggenda','Mito','Odissea','Epica','Avventura','Guerra','Pace','Alba','Crepuscolo','Eternita','Destino','Gloria','Vittoria','Conquista','Dominio','Genesi','Apocalisse'], suffixes:['d\'Ombra','di Luce','di Sogni','di Rovina','di Speranza','degli Antichi','dei Persi','dei Dannati','delle Stelle','della Luna','d\'Inverno','dell\'Abisso','dei Cieli'], stories:['Un male antico si agita nelle profondita, minacciando di consumare tutto cio che vive. Gli eroi devono sorgere per affrontare questa oscurita.','Una profezia parla di prescelti che ripristineranno l\'equilibrio in un mondo fratturato. Il destino dei regni poggia sulle loro spalle.','La magia svanisce dal regno mentre gli dei antichi dormono. Solo gli avventurieri piu coraggiosi possono riaccendere la fiamma della speranza.'] }
+    };
+    var lang = function(){ return (localStorage.getItem('preferredLanguage')||'en').split('-')[0]; };
+    var pick = function(a){ return a[Math.floor(Math.random()*a.length)]; };
+    var dict = function(){ return D[lang()]||D.en; };
+
+    window.genName = function(){
+        var d = dict();
+        var r = Math.random();
+        var name;
+        if(r<0.3) name = pick(d.prefixes)+' '+pick(d.nouns);
+        else if(r<0.5) name = pick(d.prefixes)+' '+pick(d.nouns)+' '+pick(d.suffixes);
+        else if(r<0.7) name = pick(d.nouns)+' '+pick(d.suffixes);
+        else name = pick(d.nouns);
+        document.getElementById('CampaignName').value = name;
+    };
+
+    window.genDesc = function(){
+        var d = dict();
+        var name = document.getElementById('CampaignName').value || pick(d.nouns);
+        var desc = name + '. ' + pick(d.stories) + ' ' + pick(d.stories);
+        document.getElementById('CampaignDescription').value = desc;
+        document.getElementById('regenDescBtn').style.display = 'inline-block';
+    };
+
+    window.genSystem = function(){
+        var sys = ['D&D 5e','Pathfinder 2e','Call of Cthulhu','Vampire: The Masquerade','Starfinder','Dungeon Crawl Classics'];
+        document.getElementById('GameSystem').value = pick(sys);
+    };
+
+    window.previewImage = function(input){
+        if(input.files&&input.files[0]){
+            var r=new FileReader();
+            r.onload=function(e){
+                document.getElementById('coverPreviewImg').src=e.target.result;
+                document.getElementById('coverPreview').style.display='block';
+                document.getElementById('coverImageUrl').value=e.target.result;
+            };
+            r.readAsDataURL(input.files[0]);
         }
+    };
 
-        function previewImage(input) {
-            if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    document.getElementById('coverPreviewImg').src = e.target.result;
-                    document.getElementById('coverPreview').style.display = 'block';
-                    document.getElementById('coverImageUrl').value = '';
-                }
-                reader.readAsDataURL(input.files[0]);
-            }
+    window.handleCoverUpload = function(input){
+        if(input.files&&input.files[0]){
+            var r=new FileReader();
+            r.onload=function(e){
+                document.getElementById('coverPreviewImg').src=e.target.result;
+                document.getElementById('coverPreview').style.display='block';
+                document.getElementById('coverImageUrl').value=e.target.result;
+            };
+            r.readAsDataURL(input.files[0]);
         }
+    };
 
-        function generateAICover() {
-            document.getElementById('aiCoverPrompt').style.display = 'block';
-            document.getElementById('coverPromptInput').focus();
-        }
-
-        async function generateCoverImage() {
-            const prompt = document.getElementById('coverPromptInput').value.trim();
-            if (!prompt) {
-                alert('Please describe what you want for your campaign cover.');
-                return;
-            }
-
-            const btn = event.target;
-            btn.disabled = true;
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Generating image...';
-
-            try {
-                console.log('Generating image with prompt:', prompt);
-                
-                const response = await fetch('/AiChat?handler=GenerateImage', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
-                    },
-                    body: JSON.stringify({ 
-                        prompt: prompt,
-                        type: 'campaign_cover'
-                    })
-                });
-
-                const data = await response.json();
-                console.log('Server response:', data);
-                
-                if (data.imageUrl) {
-                    const img = document.getElementById('coverPreviewImg');
-                    
-                    // Show a loading spinner while image loads
-                    img.src = '';
-                    document.getElementById('coverPreview').style.display = 'block';
-                    
-                    // Try loading the image with retry logic
-                    let attempts = 0;
-                    const maxAttempts = 10;
-                    
-                    const tryLoadImage = () => {
-                        return new Promise((resolve) => {
-                            img.onload = () => resolve(true);
-                            img.onerror = () => resolve(false);
-                            // Add timestamp to prevent caching
-                            img.src = data.imageUrl + '&t=' + new Date().getTime();
-                        });
-                    };
-                    
-                    // Poll until image loads or max attempts reached
-                    for (let i = 0; i < maxAttempts; i++) {
-                        btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span>Loading... (${i + 1}/${maxAttempts})`;
-                        
-                        const loaded = await tryLoadImage();
-                        if (loaded) {
-                            console.log('Image loaded successfully');
-                            document.getElementById('coverImageUrl').value = data.imageUrl;
-                            document.getElementById('aiCoverPrompt').style.display = 'none';
-                            btn.innerHTML = '<i class="bi bi-check me-1"></i>Generated!';
-                            setTimeout(() => {
-                                btn.innerHTML = '<i class="bi bi-magic me-1"></i>Generate';
-                            }, 2000);
-                            return;
-                        }
-                        
-                        // Wait 2 seconds before retry
-                        await new Promise(r => setTimeout(r, 2000));
-                    }
-                    
-                    // If we get here, image failed to load after all attempts
-                    console.error('Image failed to load after multiple attempts');
-                    alert('Image is taking longer than expected to generate. Please try again or use a shorter prompt.');
-                    document.getElementById('coverPreview').style.display = 'none';
-                } else {
-                    alert('Failed to generate image: ' + (data.error || 'Unknown error'));
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Error generating image: ' + error.message);
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="bi bi-magic me-1"></i>Generate';
-            }
-        }
-
-        function removeCoverPreview() {
-            document.getElementById('coverPreview').style.display = 'none';
-            document.getElementById('coverPreviewImg').src = '';
-            document.getElementById('coverImageUrl').value = '';
-            document.getElementById('coverFile').value = '';
-        }
-    </script>
+    window.removeCoverPreview = function(){
+        document.getElementById('coverPreview').style.display='none';
+        document.getElementById('coverPreviewImg').src='';
+        document.getElementById('coverImageUrl').value='';
+        document.getElementById('coverFile').value='';
+        document.getElementById('coverFileAlt').value='';
+    };
+})();
+</script>
 }

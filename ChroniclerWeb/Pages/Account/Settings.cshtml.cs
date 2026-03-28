@@ -2,11 +2,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using TheChronicler.Web.Data;
-using TheChronicler.Web.Models;
-using TheChronicler.Web.Services;
+using ChroniclerWeb.Data;
+using ChroniclerWeb.Models;
+using ChroniclerWeb.Services;
+using ChroniclerWeb.Services.Avatar;
 
-namespace TheChronicler.Web.Pages.Account
+
+namespace ChroniclerWeb.Pages.Account
 {
     [Authorize]
     public class SettingsModel : PageModel
@@ -61,12 +63,16 @@ namespace TheChronicler.Web.Pages.Account
                 var fileBytes = memoryStream.ToArray();
                 user.AvatarData = Convert.ToBase64String(fileBytes);
                 user.AvatarContentType = AvatarFile.ContentType;
+                user.AvatarUrl = null; // Clear URL when uploading new image
+                user.UpdatedAt = DateTime.UtcNow;
             }
             else if (!string.IsNullOrEmpty(SelectedAvatar))
             {
                 // Handle selection of default avatar
                 user.AvatarData = SelectedAvatar;
                 user.AvatarContentType = "image/svg+xml";
+                user.AvatarUrl = null; // Clear URL when selecting default
+                user.UpdatedAt = DateTime.UtcNow;
             }
 
             await _userManager.UpdateAsync(user);
@@ -93,7 +99,8 @@ namespace TheChronicler.Web.Pages.Account
             await _signInManager.RefreshSignInAsync(user);
 
             TempData["Success"] = "Preferences updated successfully!";
-            return RedirectToPage();
+            // Pass language as query param to trigger translation on page load
+            return RedirectToPage(null, null, new { lang = user.PreferredLanguage });
         }
 
         public string GetAccountAge()

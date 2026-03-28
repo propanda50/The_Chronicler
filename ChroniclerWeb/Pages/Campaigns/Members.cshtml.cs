@@ -2,11 +2,11 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
-using TheChronicler.Web.Data;
-using TheChronicler.Web.Models;
-using TheChronicler.Web.Services;
+using ChroniclerWeb.Data;
+using ChroniclerWeb.Models;
+using ChroniclerWeb.Services;
 
-namespace TheChronicler.Web.Pages.Campaigns
+namespace ChroniclerWeb.Pages.Campaigns
 {
     public class MembersModel : PageModel
     {
@@ -44,16 +44,20 @@ namespace TheChronicler.Web.Pages.Campaigns
             return Page();
         }
 
-        public async Task<IActionResult> OnPostAddMemberAsync(int campaignId, string email, string role, bool canAddNotes)
+        public async Task<IActionResult> OnPostAddMemberAsync(int campaignId, string pseudo, string role, bool canAddNotes)
         {
             var userId = _userManager.GetUserId(User)!;
             if (!await _campaignService.IsUserOwner(campaignId, userId))
                 return RedirectToPage("/Account/AccessDenied");
 
-            var user = await _userManager.FindByEmailAsync(email);
+            var normalizedPseudo = pseudo.Trim().ToUpperInvariant();
+
+            var user = await _userManager.Users
+                .FirstOrDefaultAsync(u => u.NormalizedPseudo == normalizedPseudo);
+
             if (user == null)
             {
-                TempData["Error"] = $"No user found with email '{email}'.";
+                TempData["Error"] = $"No user found with pseudo '{pseudo}'.";
                 return RedirectToPage(new { id = campaignId });
             }
 
@@ -62,7 +66,13 @@ namespace TheChronicler.Web.Pages.Campaigns
 
             if (existing)
             {
-                TempData["Error"] = "User is already a member of this campaign.";
+                TempData["Error"] = "This user is already a member of this campaign.";
+                return RedirectToPage(new { id = campaignId });
+            }
+
+            if (!Enum.TryParse<CampaignRole>(role, ignoreCase: true, out var parsedRole))
+            {
+                TempData["Error"] = "Invalid role specified.";
                 return RedirectToPage(new { id = campaignId });
             }
 
@@ -70,7 +80,7 @@ namespace TheChronicler.Web.Pages.Campaigns
             {
                 CampaignId = campaignId,
                 UserId = user.Id,
-                Role = Enum.Parse<CampaignRole>(role),
+                Role = parsedRole,
                 CanAddNotes = canAddNotes
             };
 

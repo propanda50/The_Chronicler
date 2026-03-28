@@ -2,13 +2,16 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using TheChronicler.Web.Data;
-using TheChronicler.Web.Models;
-using TheChronicler.Web.Services;
+using ChroniclerWeb.Data;
+using ChroniclerWeb.Models;
+using ChroniclerWeb.Services;
+using ChroniclerWeb.Services.FileUpload;
+using ChroniclerWeb.Services.AudioTranscription;
 
-namespace TheChronicler.Web.Pages.Forum
+namespace ChroniclerWeb.Pages.Forum
 {
     [Authorize]
+    [AutoValidateAntiforgeryToken]
     public class CreateModel : PageModel
     {
         private readonly ApplicationDbContext _context;
@@ -18,8 +21,8 @@ namespace TheChronicler.Web.Pages.Forum
         private readonly IAudioTranscriptionService _audioTranscriptionService;
 
         public CreateModel(
-            ApplicationDbContext context, 
-            UserManager<ApplicationUser> userManager, 
+            ApplicationDbContext context,
+            UserManager<ApplicationUser> userManager,
             ICampaignService campaignService,
             IFileUploadService fileUploadService,
             IAudioTranscriptionService audioTranscriptionService)
@@ -34,76 +37,86 @@ namespace TheChronicler.Web.Pages.Forum
         [BindProperty]
         public ForumPost Post { get; set; } = new();
 
+        [BindProperty]
         public int CampaignId { get; set; }
+
         public string CampaignName { get; set; } = string.Empty;
 
         public async Task<IActionResult> OnGetAsync(int campaignId)
         {
             if (!User.Identity?.IsAuthenticated ?? true)
-            {
                 return RedirectToPage("/Account/Login", new { returnUrl = $"/Forum/Create?campaignId={campaignId}" });
-            }
 
             var userId = _userManager.GetUserId(User);
-            if (string.IsNullOrEmpty(userId))
-            {
+            if (string.IsNullOrWhiteSpace(userId))
                 return RedirectToPage("/Account/Login");
-            }
 
-            if (!await _campaignService.IsUserMember(campaignId, userId))
+            if (!await _campaignService.CanUserAccess(campaignId, userId))
             {
                 TempData["Error"] = "You must be a member of this campaign to create forum posts.";
-                return RedirectToPage("/Campaigns/Index");
+                return RedirectToPage("/Account/AccessDenied");
             }
 
             CampaignId = campaignId;
             var campaign = await _context.Campaigns.FindAsync(campaignId);
-            CampaignName = campaign?.Name ?? "";
+            CampaignName = campaign?.Name ?? string.Empty;
             return Page();
         }
 
-        public async Task<IActionResult> OnPostAsync(List<IFormFile>? Files)
+        public async Task<IActionResult> OnPostAsync(List<IFormFile>? files)
         {
             if (!User.Identity?.IsAuthenticated ?? true)
-            {
                 return RedirectToPage("/Account/Login");
-            }
 
             var userId = _userManager.GetUserId(User);
-            if (string.IsNullOrEmpty(userId))
-            {
+            if (string.IsNullOrWhiteSpace(userId))
                 return RedirectToPage("/Account/Login");
-            }
 
-            if (!await _campaignService.IsUserMember(Post.CampaignId, userId))
+            Post.CampaignId = CampaignId;
+            Post.AuthorId = userId;
+
+            ModelState.Remove("Post.Author");
+            ModelState.Remove("Post.AuthorId");
+            ModelState.Remove("Post.Campaign");
+            ModelState.Remove("Post.CampaignId");
+
+            if (!await _campaignService.CanUserAccess(Post.CampaignId, userId))
             {
                 TempData["Error"] = "You must be a member of this campaign to create forum posts.";
-                return RedirectToPage("/Campaigns/Index");
+                return RedirectToPage("/Account/AccessDenied");
             }
 
             if (!ModelState.IsValid)
             {
-                CampaignId = Post.CampaignId;
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage);
+                TempData["Error"] = "Validation failed: " + string.Join("; ", errors);
+                var campaign = await _context.Campaigns.FindAsync(CampaignId);
+                CampaignName = campaign?.Name ?? string.Empty;
                 return Page();
             }
 
-            Post.AuthorId = userId;
             Post.CreatedAt = DateTime.UtcNow;
             Post.UpdatedAt = DateTime.UtcNow;
 
             _context.ForumPosts.Add(Post);
             await _context.SaveChangesAsync();
 
-            // Handle file uploads
-            if (Files != null && Files.Count > 0)
+            if (files != null && files.Count > 0)
             {
-                foreach (var file in Files)
+                foreach (var file in files.Where(f => f.Length > 0))
                 {
-                    if (file.Length > 0)
-                    {
-                        var fileType = DetermineFileType(file.ContentType);
-                        await _fileUploadService.UploadFileAsync(file, userId, Post.CampaignId, null, null, fileType);
-                    }
+                    var fileType = DetermineFileType(file.ContentType);
+                    await _fileUploadService.UploadFileAsync(
+                        file: file,
+                        userId: userId,
+                        campaignId: Post.CampaignId,
+                        characterId: null,
+                        locationId: null,
+                        eventId: null,
+                        sessionId: null,
+                        forumPostId: Post.Id,
+                        fileType: fileType,
+                        description: $"Forum attachment for post #{Post.Id}: {Post.Title}");
                 }
             }
 
@@ -111,18 +124,20 @@ namespace TheChronicler.Web.Pages.Forum
             return RedirectToPage("/Forum/Index", new { campaignId = Post.CampaignId });
         }
 
-        public async Task<IActionResult> OnPostTranscribeAudio()
+        public async Task<IActionResult> OnPostTranscribeAudioAsync([FromForm] IFormFile audioFile, [FromForm] string? language)
         {
-            var file = Request.Form.Files.FirstOrDefault();
-            if (file == null || !file.ContentType.StartsWith("audio/"))
-            {
-                return new JsonResult(new { error = "No audio file provided" }) { StatusCode = 400 };
-            }
+            if (audioFile == null || audioFile.Length == 0 || !audioFile.ContentType.StartsWith("audio/"))
+                return new JsonResult(new { error = "No valid audio file provided." }) { StatusCode = 400 };
 
             try
             {
-                using var stream = file.OpenReadStream();
-                var transcript = await _audioTranscriptionService.TranscribeAudioAsync(stream);
+                await using var stream = audioFile.OpenReadStream();
+                var transcript = await _audioTranscriptionService.TranscribeAudioAsync(
+                    stream,
+                    language ?? "auto",
+                    audioFile.FileName,
+                    audioFile.ContentType);
+
                 return new JsonResult(new { transcript });
             }
             catch (Exception ex)
@@ -131,7 +146,7 @@ namespace TheChronicler.Web.Pages.Forum
             }
         }
 
-        private FileType DetermineFileType(string contentType)
+        private static FileType DetermineFileType(string contentType)
         {
             if (contentType.StartsWith("image/")) return FileType.Image;
             if (contentType.StartsWith("audio/")) return FileType.Audio;

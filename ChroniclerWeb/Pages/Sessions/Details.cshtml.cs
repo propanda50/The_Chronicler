@@ -2,11 +2,12 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
-using TheChronicler.Web.Data;
-using TheChronicler.Web.Models;
-using TheChronicler.Web.Services;
+using ChroniclerWeb.Data;
+using ChroniclerWeb.Models;
+using ChroniclerWeb.Services;
 
-namespace TheChronicler.Web.Pages.Sessions
+
+namespace ChroniclerWeb.Pages.Sessions
 {
     public class DetailsModel : PageModel
     {
@@ -23,6 +24,7 @@ namespace TheChronicler.Web.Pages.Sessions
 
         public Session Session { get; set; } = null!;
         public bool IsGameMaster { get; set; }
+        public bool CanEditNotes { get; set; }
         public int? PreviousSessionId { get; set; }
         public int? NextSessionId { get; set; }
 
@@ -44,6 +46,7 @@ namespace TheChronicler.Web.Pages.Sessions
 
             Session = session;
             IsGameMaster = await _campaignService.IsUserGameMaster(session.CampaignId, userId);
+            CanEditNotes = IsGameMaster || await _campaignService.CanUserAddNotes(session.CampaignId, userId);
 
             // Navigation
             PreviousSessionId = await _context.Sessions

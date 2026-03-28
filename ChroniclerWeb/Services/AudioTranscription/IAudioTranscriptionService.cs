@@ -2,6 +2,12 @@
 {
     public interface IAudioTranscriptionService
     {
-        Task<string> TranscribeAudioAsync(Stream audioStream, string language = "en-US");
+       
+            Task<string> TranscribeAudioAsync(
+                Stream audioStream,
+                string language = "auto",
+                string fileName = "audio.webm",
+                string contentType = "audio/webm");
+        
     }
 }

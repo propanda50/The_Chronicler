@@ -2,11 +2,12 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
-using TheChronicler.Web.Data;
-using TheChronicler.Web.Models;
-using TheChronicler.Web.Services;
+using ChroniclerWeb.Data;
+using ChroniclerWeb.Models;
+using ChroniclerWeb.Services;
 
-namespace TheChronicler.Web.Pages.Events
+
+namespace ChroniclerWeb.Pages.Events
 {
     public class EditModel : PageModel
     {
@@ -23,6 +24,12 @@ namespace TheChronicler.Web.Pages.Events
 
         [BindProperty]
         public Event Event { get; set; } = null!;
+
+        [BindProperty]
+        public IFormFile? ImageFile { get; set; }
+
+        [BindProperty]
+        public bool RemoveImage { get; set; }
 
         public List<Session> AvailableSessions { get; set; } = new();
 
@@ -48,6 +55,7 @@ namespace TheChronicler.Web.Pages.Events
                 return RedirectToPage("/Account/AccessDenied");
 
             ModelState.Remove("Event.Campaign");
+            ModelState.Remove("ImageFile");
 
             if (!ModelState.IsValid)
             {
@@ -63,6 +71,23 @@ namespace TheChronicler.Web.Pages.Events
             existing.EventDate = Event.EventDate;
             existing.IsKeyEvent = Event.IsKeyEvent;
             existing.SessionId = Event.SessionId;
+
+            // Handle image removal
+            if (RemoveImage)
+            {
+                existing.ImageData = null;
+                existing.ImageContentType = null;
+                existing.ImageUrl = null;
+            }
+
+            // Handle new image upload
+            if (ImageFile != null && ImageFile.Length > 0)
+            {
+                using var ms = new MemoryStream();
+                await ImageFile.CopyToAsync(ms);
+                existing.ImageData = Convert.ToBase64String(ms.ToArray());
+                existing.ImageContentType = ImageFile.ContentType;
+            }
 
             await _context.SaveChangesAsync();
 

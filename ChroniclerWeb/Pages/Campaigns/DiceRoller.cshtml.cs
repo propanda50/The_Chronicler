@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
-namespace TheChronicler.Web.Pages.Campaigns
+namespace ChroniclerWeb.Pages.Campaigns
 {
     [Authorize]
     public class DiceRollerModel : PageModel

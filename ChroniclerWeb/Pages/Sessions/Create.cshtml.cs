@@ -2,11 +2,12 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
-using TheChronicler.Web.Data;
-using TheChronicler.Web.Models;
-using TheChronicler.Web.Services;
+using ChroniclerWeb.Data;
+using ChroniclerWeb.Models;
+using ChroniclerWeb.Services;
 
-namespace TheChronicler.Web.Pages.Sessions
+
+namespace ChroniclerWeb.Pages.Sessions
 {
     public class CreateModel : PageModel
     {
@@ -46,6 +47,9 @@ namespace TheChronicler.Web.Pages.Sessions
             return Page();
         }
 
+        [BindProperty]
+        public IFormFile? ImageFile { get; set; }
+
         public async Task<IActionResult> OnPostAsync()
         {
             var userId = _userManager.GetUserId(User)!;
@@ -53,6 +57,7 @@ namespace TheChronicler.Web.Pages.Sessions
                 return RedirectToPage("/Account/AccessDenied");
 
             ModelState.Remove("Session.Campaign");
+            ModelState.Remove("ImageFile");
 
             if (!ModelState.IsValid)
             {
@@ -62,6 +67,15 @@ namespace TheChronicler.Web.Pages.Sessions
 
             Session.CreatedAt = DateTime.UtcNow;
             Session.UpdatedAt = DateTime.UtcNow;
+
+            // Handle image upload
+            if (ImageFile != null && ImageFile.Length > 0)
+            {
+                using var ms = new MemoryStream();
+                await ImageFile.CopyToAsync(ms);
+                Session.ImageData = Convert.ToBase64String(ms.ToArray());
+                Session.ImageContentType = ImageFile.ContentType;
+            }
 
             _context.Sessions.Add(Session);
             await _context.SaveChangesAsync();

@@ -2,9 +2,12 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.ComponentModel.DataAnnotations;
-using TheChronicler.Web.Models;
+using ChroniclerWeb.Data;
+using ChroniclerWeb.Models;
+using ChroniclerWeb.Services;
 
-namespace TheChronicler.Web.Pages.Account
+
+namespace ChroniclerWeb.Pages.Account
 {
     public class LoginModel : PageModel
     {
@@ -49,6 +52,13 @@ namespace TheChronicler.Web.Pages.Account
 
             if (result.Succeeded)
             {
+                // Get user's preferred language and pass it as query parameter
+                var user = await _signInManager.UserManager.FindByEmailAsync(Input.Email);
+                if (user != null && !string.IsNullOrEmpty(user.PreferredLanguage) && user.PreferredLanguage != "en")
+                {
+                    return LocalRedirect(returnUrl + "?lang=" + user.PreferredLanguage);
+                }
+
                 return LocalRedirect(returnUrl);
             }
 
@@ -56,12 +66,6 @@ namespace TheChronicler.Web.Pages.Account
             return Page();
         }
 
-        public IActionResult OnPostExternalLogin(string provider, string? returnUrl = null)
-        {
-            returnUrl ??= Url.Content("~/Dashboard");
-            var redirectUrl = Url.Page("/Account/ExternalLoginCallback", new { returnUrl });
-            var properties = _signInManager.ConfigureExternalAuthenticationProperties(provider, redirectUrl);
-            return Challenge(properties, provider);
-        }
+     
     }
 }

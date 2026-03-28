@@ -42,6 +42,9 @@ namespace ChroniclerWeb.Models
         [Required, MaxLength(200)]
         public string Name { get; set; } = string.Empty;
 
+        [MaxLength(200)]
+        public string Pseudo { get; set; } = string.Empty;
+
         [MaxLength(2000)]
         public string Description { get; set; } = string.Empty;
 
@@ -68,19 +71,20 @@ namespace ChroniclerWeb.Models
         public int Agility { get; set; } = 0;
         public int Health { get; set; } = 0;
         public int Intelligence { get; set; } = 0;
+        public int Charisma { get; set; } = 0;
+        public int Endurance { get; set; } = 0;
 
         // Keeping these for backward compatibility with existing data and services
         // These are not used in the new stat system but kept to avoid breaking changes
         public int Dexterity { get; set; } = 0;
-        public int Constitution { get; set; } = 0;
         public int Wisdom { get; set; } = 0;
-        public int Charisma { get; set; } = 0;
+        public int Constitution { get; set; } = 0;
 
         [NotMapped]
-        public int MaxStatPoints { get; set; } = 54;
+        public int MaxStatPoints { get; set; } = 60;
 
         [NotMapped]
-        public int SpentPoints => Strength + Agility + Health + Intelligence;
+        public int SpentPoints => Strength + Agility + Health + Intelligence + Charisma + Endurance;
 
         [NotMapped]
         public int RemainingPoints => MaxStatPoints - SpentPoints;

@@ -2,11 +2,12 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
-using TheChronicler.Web.Data;
-using TheChronicler.Web.Models;
-using TheChronicler.Web.Services;
+using ChroniclerWeb.Data;
+using ChroniclerWeb.Models;
+using ChroniclerWeb.Services;
 
-namespace TheChronicler.Web.Pages.Events
+
+namespace ChroniclerWeb.Pages.Events
 {
     public class CreateModel : PageModel
     {
@@ -23,6 +24,9 @@ namespace TheChronicler.Web.Pages.Events
 
         [BindProperty]
         public Event Event { get; set; } = new();
+
+        [BindProperty]
+        public IFormFile? ImageFile { get; set; }
 
         public int CampaignId { get; set; }
         public string CampaignName { get; set; } = string.Empty;
@@ -45,6 +49,7 @@ namespace TheChronicler.Web.Pages.Events
                 return RedirectToPage("/Account/AccessDenied");
 
             ModelState.Remove("Event.Campaign");
+            ModelState.Remove("ImageFile");
 
             if (!ModelState.IsValid)
             {
@@ -53,6 +58,15 @@ namespace TheChronicler.Web.Pages.Events
             }
 
             Event.CreatedAt = DateTime.UtcNow;
+
+            // Handle image upload
+            if (ImageFile != null && ImageFile.Length > 0)
+            {
+                using var ms = new MemoryStream();
+                await ImageFile.CopyToAsync(ms);
+                Event.ImageData = Convert.ToBase64String(ms.ToArray());
+                Event.ImageContentType = ImageFile.ContentType;
+            }
 
             _context.Events.Add(Event);
             await _context.SaveChangesAsync();

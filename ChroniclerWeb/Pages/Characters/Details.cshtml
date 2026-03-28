@@ -1,8 +1,46 @@
 @page "{id:int}"
-@model TheChronicler.Web.Pages.Characters.DetailsModel
+@model ChroniclerWeb.Pages.Characters.DetailsModel
 @{
     ViewData["Title"] = Model.Character.Name;
+    
+    string? portraitSrc = null;
+    if (!string.IsNullOrEmpty(Model.Character.PortraitUrl))
+    {
+        portraitSrc = Model.Character.PortraitUrl;
+    }
+    else if (!string.IsNullOrEmpty(Model.Character.PortraitData))
+    {
+        if (Model.Character.PortraitData.StartsWith("data:"))
+        {
+            portraitSrc = Model.Character.PortraitData;
+        }
+        else
+        {
+            portraitSrc = $"data:{Model.Character.PortraitContentType ?? "image/jpeg"};base64,{Model.Character.PortraitData}";
+        }
+    }
+    bool hasPortrait = portraitSrc != null;
 }
+
+<style>
+    .character-portrait {
+        border-radius: 16px;
+        border: 3px solid var(--chr-gold);
+        box-shadow: 0 0 30px rgba(212, 168, 67, 0.3);
+        transition: transform 0.3s ease;
+    }
+    .character-portrait:hover {
+        transform: scale(1.02);
+    }
+    .portrait-container {
+        position: relative;
+        overflow: hidden;
+    }
+    .portrait-container img {
+        width: 100%;
+        height: auto;
+    }
+</style>
 
 <div class="page-header d-flex justify-content-between align-items-center">
     <div>
@@ -25,43 +63,92 @@
 </div>
 
 <div class="row g-4">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-body">
-                <div class="d-flex gap-2 mb-3">
-                    <span class="badge badge-@Model.Character.Status.ToString().ToLower()">@Model.Character.Status</span>
-                    <span class="badge bg-secondary">@Model.Character.Type</span>
-                </div>
-
-                @if (!string.IsNullOrEmpty(Model.Character.Race) || !string.IsNullOrEmpty(Model.Character.Class))
-                {
-                    <div class="mb-3">
-                        @if (!string.IsNullOrEmpty(Model.Character.Race))
-                        {
-                            <span class="me-3"><strong>Race:</strong> @Model.Character.Race</span>
-                        }
-                        @if (!string.IsNullOrEmpty(Model.Character.Class))
-                        {
-                            <span class="me-3"><strong>Class:</strong> @Model.Character.Class</span>
-                        }
-                    </div>
-                }
-
-                @if (!string.IsNullOrEmpty(Model.Character.Role))
-                {
-                    <div class="mb-3">
-                        <strong>Role:</strong> @Model.Character.Role
-                    </div>
-                }
-
-                @if (!string.IsNullOrEmpty(Model.Character.Description))
-                {
-                    <h6>Description</h6>
-                    <p style="white-space: pre-wrap;">@Model.Character.Description</p>
-                }
+    @if (hasPortrait)
+    {
+        <div class="col-md-4">
+            <div class="portrait-container">
+                <img src="@portraitSrc" alt="@Model.Character.Name" class="character-portrait" />
             </div>
         </div>
-    </div>
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex gap-2 mb-3">
+                        <span class="badge badge-@Model.Character.Status.ToString().ToLower()">@Model.Character.Status</span>
+                        <span class="badge bg-secondary">@Model.Character.Type</span>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(Model.Character.Race) || !string.IsNullOrEmpty(Model.Character.Class))
+                    {
+                        <div class="mb-3">
+                            @if (!string.IsNullOrEmpty(Model.Character.Race))
+                            {
+                                <span class="me-3"><strong>Race:</strong> @Model.Character.Race</span>
+                            }
+                            @if (!string.IsNullOrEmpty(Model.Character.Class))
+                            {
+                                <span class="me-3"><strong>Class:</strong> @Model.Character.Class</span>
+                            }
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(Model.Character.Role))
+                    {
+                        <div class="mb-3">
+                            <strong>Role:</strong> @Model.Character.Role
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(Model.Character.Description))
+                    {
+                        <h6>Description</h6>
+                        <p style="white-space: pre-wrap;" data-translatable>@Model.Character.Description</p>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex gap-2 mb-3">
+                        <span class="badge badge-@Model.Character.Status.ToString().ToLower()">@Model.Character.Status</span>
+                        <span class="badge bg-secondary">@Model.Character.Type</span>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(Model.Character.Race) || !string.IsNullOrEmpty(Model.Character.Class))
+                    {
+                        <div class="mb-3">
+                            @if (!string.IsNullOrEmpty(Model.Character.Race))
+                            {
+                                <span class="me-3"><strong>Race:</strong> @Model.Character.Race</span>
+                            }
+                            @if (!string.IsNullOrEmpty(Model.Character.Class))
+                            {
+                                <span class="me-3"><strong>Class:</strong> @Model.Character.Class</span>
+                            }
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(Model.Character.Role))
+                    {
+                        <div class="mb-3">
+                            <strong>Role:</strong> @Model.Character.Role
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(Model.Character.Description))
+                    {
+                        <h6>Description</h6>
+                        <p style="white-space: pre-wrap;" data-translatable>@Model.Character.Description</p>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+    
     <div class="col-md-4">
         <div class="card">
             <div class="card-header">

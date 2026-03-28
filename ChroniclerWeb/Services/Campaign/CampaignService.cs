@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ChroniclerData.Services.Campaign
+namespace ChroniclerWeb.Services
 {
     public class CampaignService : ICampaignService
     {
@@ -38,9 +38,14 @@ namespace ChroniclerData.Services.Campaign
 
         public async Task<bool> IsUserMember(int campaignId, string userId)
         {
+            if (string.IsNullOrEmpty(userId))
+                return false;
+
+            // Owner is always a member
             if (await IsUserOwner(campaignId, userId))
                 return true;
 
+            // Check CampaignMembers table - case-insensitive comparison
             return await _context.CampaignMembers
                 .AnyAsync(cm => cm.CampaignId == campaignId && cm.UserId == userId);
         }
@@ -70,6 +75,11 @@ namespace ChroniclerData.Services.Campaign
                 .FirstOrDefaultAsync(cm => cm.CampaignId == campaignId && cm.UserId == userId);
 
             return member?.CanAddNotes ?? false;
+        }
+
+        public async Task<bool> CanUserAccess(int campaignId, string userId)
+        {
+            return await IsUserMember(campaignId, userId);
         }
     }
 }

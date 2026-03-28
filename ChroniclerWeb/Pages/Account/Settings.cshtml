@@ -1,5 +1,5 @@
 @page
-@model TheChronicler.Web.Pages.Account.SettingsModel
+@model ChroniclerWeb.Pages.Account.SettingsModel
 @{
     ViewData["Title"] = "Settings";
 }
@@ -37,16 +37,16 @@
         margin-bottom: 4px;
     }
     
-.settings-nav-item:hover {
-    background: rgba(139, 92, 246, 0.1);
-    color: var(--chr-primary);
-}
+        .settings-nav-item:hover {
+            background: rgba(139, 92, 246, 0.1);
+            color: var(--chr-primary);
+        }
 
-.settings-nav-item.active {
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(124, 58, 237, 0.1));
-    color: var(--chr-primary);
-    border: 1px solid rgba(139, 92, 246, 0.3);
-}
+        .settings-nav-item.active {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(124, 58, 237, 0.1));
+            color: var(--chr-primary);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+        }
     
     .settings-content {
         flex: 1;
@@ -60,9 +60,9 @@
         margin-bottom: 30px;
     }
     
-    .settings-section:last-child {
-        margin-bottom: 0;
-    }
+        .settings-section:last-child {
+            margin-bottom: 0;
+        }
     
     .settings-section-title {
         font-size: 1.3rem;
@@ -99,10 +99,10 @@
         border: 3px solid var(--chr-gold);
     }
     
-    .profile-avatar-placeholder i {
-        font-size: 3rem;
-        color: var(--chr-gold);
-    }
+        .profile-avatar-placeholder i {
+            font-size: 3rem;
+            color: var(--chr-gold);
+        }
     
     .profile-info h3 {
         margin: 0 0 5px 0;
@@ -125,9 +125,9 @@
         font-size: 0.9rem;
     }
     
-    .account-age i {
-        color: var(--chr-gold);
-    }
+        .account-age i {
+            color: var(--chr-gold);
+        }
     
     .stat-card {
         background: var(--chr-bg-surface);
@@ -197,16 +197,16 @@
             transition: all 0.2s;
         }
         
-        .avatar-option:hover {
-            border-color: var(--chr-primary);
-            background-color: rgba(139, 92, 246, 0.05);
-        }
+            .avatar-option:hover {
+                border-color: var(--chr-primary);
+                background-color: rgba(139, 92, 246, 0.05);
+            }
         
-        .avatar-option input[type="radio"] {
-            margin: 0;
-            width: 16px;
-            height: 16px;
-        }
+            .avatar-option input[type="radio"] {
+                margin: 0;
+                width: 16px;
+                height: 16px;
+            }
         
         .avatar-preview {
             width: 50px;
@@ -259,11 +259,22 @@
             
             <div class="profile-header">
                 @{
-                    var avatarSrc = !string.IsNullOrEmpty(Model.CurrentUser.AvatarUrl) 
-                        ? Model.CurrentUser.AvatarUrl 
-                        : (!string.IsNullOrEmpty(Model.CurrentUser.AvatarData) 
-                            ? $"data:{Model.CurrentUser.AvatarContentType ?? "image/jpeg"};base64,{Model.CurrentUser.AvatarData}" 
-                            : null);
+                    string? avatarSrc = null;
+                    if (!string.IsNullOrEmpty(Model.CurrentUser.AvatarUrl))
+                    {
+                        avatarSrc = Model.CurrentUser.AvatarUrl;
+                    }
+                    else if (!string.IsNullOrEmpty(Model.CurrentUser.AvatarData))
+                    {
+                        if (Model.CurrentUser.AvatarData.StartsWith("data:"))
+                        {
+                            avatarSrc = Model.CurrentUser.AvatarData;
+                        }
+                        else
+                        {
+                            avatarSrc = $"data:{Model.CurrentUser.AvatarContentType ?? "image/jpeg"};base64,{Model.CurrentUser.AvatarData}";
+                        }
+                    }
                 }
                 @if (!string.IsNullOrEmpty(avatarSrc))
                 {
@@ -297,46 +308,46 @@
                     </div>
                 </div>
                 
-<div class="mb-3">
-    <label class="form-label">Profile Picture</label>
-    <div class="avatar-options">
-        <div class="avatar-upload">
-            <label class="form-label">Upload Custom Avatar</label>
-            <input type="file" class="form-control" name="AvatarFile" accept="image/*" />
-        </div>
+                <div class="mb-3">
+                    <label class="form-label">Profile Picture</label>
+                    <div class="avatar-options">
+                        <div class="avatar-upload">
+                            <label class="form-label">Upload Custom Avatar</label>
+                            <input type="file" class="form-control" name="AvatarFile" accept="image/*" />
+                        </div>
         
-        <div class="avatar-defaults">
-            <label class="form-label">Choose Default Avatar</label>
-            <div class="avatar-grid">
-                @foreach (var avatar in Model.DefaultAvatars.Take(12)) // Show first 12
-                {
-                    <label class="avatar-option">
-                        <input type="radio" name="SelectedAvatar" value="@avatar" />
-                        <img src="@avatar" alt="Avatar" class="avatar-preview" />
-                    </label>
-                }
-            </div>
-            <div class="avatar-grid">
-                @foreach (var avatar in Model.DefaultAvatars.Skip(12).Take(12)) // Show next 12
-                {
-                    <label class="avatar-option">
-                        <input type="radio" name="SelectedAvatar" value="@avatar" />
-                        <img src="@avatar" alt="Avatar" class="avatar-preview" />
-                    </label>
-                }
-            </div>
-            <div class="avatar-grid">
-                @foreach (var avatar in Model.DefaultAvatars.Skip(24)) // Show remaining 6
-                {
-                    <label class="avatar-option">
-                        <input type="radio" name="SelectedAvatar" value="@avatar" />
-                        <img src="@avatar" alt="Avatar" class="avatar-preview" />
-                    </label>
-                }
-            </div>
-        </div>
-    </div>
-</div>
+                        <div class="avatar-defaults">
+                            <label class="form-label">Choose Default Avatar</label>
+                            <div class="avatar-grid">
+                                @foreach (var avatar in Model.DefaultAvatars.Take(12)) // Show first 12
+                                {
+                                    <label class="avatar-option">
+                                        <input type="radio" name="SelectedAvatar" value="@avatar" />
+                                        <img src="@avatar" alt="Avatar" class="avatar-preview" />
+                                    </label>
+                                }
+                            </div>
+                            <div class="avatar-grid">
+                                @foreach (var avatar in Model.DefaultAvatars.Skip(12).Take(12)) // Show next 12
+                                {
+                                    <label class="avatar-option">
+                                        <input type="radio" name="SelectedAvatar" value="@avatar" />
+                                        <img src="@avatar" alt="Avatar" class="avatar-preview" />
+                                    </label>
+                                }
+                            </div>
+                            <div class="avatar-grid">
+                                @foreach (var avatar in Model.DefaultAvatars.Skip(24)) // Show remaining 6
+                                {
+                                    <label class="avatar-option">
+                                        <input type="radio" name="SelectedAvatar" value="@avatar" />
+                                        <img src="@avatar" alt="Avatar" class="avatar-preview" />
+                                    </label>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 
                 <div class="d-flex gap-3">
                     <button type="submit" class="btn btn-chronicle">
@@ -350,24 +361,51 @@
         <div id="preferences-section" class="settings-section" style="display: none;">
             <h3 class="settings-section-title"><i class="bi bi-sliders me-2"></i>Preferences</h3>
             
-            <form method="post" asp-page-handler="UpdatePreferences">
+            <form method="post" asp-page-handler="UpdatePreferences" id="preferencesForm">
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Language</label>
-                        <select class="form-select" name="Language">
+                        <select class="form-select" name="Language" id="languageSelect">
                             <option value="en" selected="@(Model.CurrentUser.PreferredLanguage == "en")">English</option>
                             <option value="fr" selected="@(Model.CurrentUser.PreferredLanguage == "fr")">Français</option>
                             <option value="nl" selected="@(Model.CurrentUser.PreferredLanguage == "nl")">Nederlands</option>
                             <option value="de" selected="@(Model.CurrentUser.PreferredLanguage == "de")">Deutsch</option>
                             <option value="es" selected="@(Model.CurrentUser.PreferredLanguage == "es")">Español</option>
+                            <option value="it" selected="@(Model.CurrentUser.PreferredLanguage == "it")">Italiano</option>
+                            <option value="pt" selected="@(Model.CurrentUser.PreferredLanguage == "pt")">Português</option>
+                            <option value="pl" selected="@(Model.CurrentUser.PreferredLanguage == "pl")">Polski</option>
+                            <option value="ru" selected="@(Model.CurrentUser.PreferredLanguage == "ru")">Русский</option>
+                            <option value="ja" selected="@(Model.CurrentUser.PreferredLanguage == "ja")">日本語</option>
+                            <option value="zh" selected="@(Model.CurrentUser.PreferredLanguage == "zh")">中文</option>
+                            <option value="ko" selected="@(Model.CurrentUser.PreferredLanguage == "ko")">한국어</option>
+                            <option value="ar" selected="@(Model.CurrentUser.PreferredLanguage == "ar")">العربية</option>
+                            <option value="tr" selected="@(Model.CurrentUser.PreferredLanguage == "tr")">Türkçe</option>
+                            <option value="cs" selected="@(Model.CurrentUser.PreferredLanguage == "cs")">Čeština</option>
+                            <option value="da" selected="@(Model.CurrentUser.PreferredLanguage == "da")">Dansk</option>
+                            <option value="el" selected="@(Model.CurrentUser.PreferredLanguage == "el")">Ελληνικά</option>
+                            <option value="fi" selected="@(Model.CurrentUser.PreferredLanguage == "fi")">Suomi</option>
+                            <option value="he" selected="@(Model.CurrentUser.PreferredLanguage == "he")">עברית</option>
+                            <option value="hi" selected="@(Model.CurrentUser.PreferredLanguage == "hi")">हिन्दी</option>
+                            <option value="hu" selected="@(Model.CurrentUser.PreferredLanguage == "hu")">Magyar</option>
+                            <option value="id" selected="@(Model.CurrentUser.PreferredLanguage == "id")">Bahasa Indonesia</option>
+                            <option value="ms" selected="@(Model.CurrentUser.PreferredLanguage == "ms")">Bahasa Melayu</option>
+                            <option value="no" selected="@(Model.CurrentUser.PreferredLanguage == "no")">Norsk</option>
+                            <option value="ro" selected="@(Model.CurrentUser.PreferredLanguage == "ro")">Română</option>
+                            <option value="sv" selected="@(Model.CurrentUser.PreferredLanguage == "sv")">Svenska</option>
+                            <option value="th" selected="@(Model.CurrentUser.PreferredLanguage == "th")">ไทย</option>
+                            <option value="uk" selected="@(Model.CurrentUser.PreferredLanguage == "uk")">Українська</option>
+                            <option value="vi" selected="@(Model.CurrentUser.PreferredLanguage == "vi")">Tiếng Việt</option>
                         </select>
+                        <small class="text-muted">Click Save to keep changes</small>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Theme</label>
-                        <select class="form-select" name="Theme">
-                            <option value="dark">Dark</option>
-                            <option value="light">Light (Coming Soon)</option>
-                        </select>
+                        <div class="d-flex gap-3 align-items-center mt-2">
+                            <button type="button" id="themeToggle" class="btn btn-outline-chronicle interactive-link" onclick="toggleTheme()">
+                                <i class="bi bi-sun me-2"></i><span>Light Mode</span>
+                            </button>
+                            <small class="text-muted">Click to toggle theme</small>
+                        </div>
                     </div>
                 </div>
                 
@@ -413,6 +451,9 @@
     </div>
 </div>
 
+<style>
+@@keyframes spin { to { transform: rotate(360deg); } }
+</style>
 <script>
     function showSection(section) {
         // Hide all sections
@@ -423,8 +464,82 @@
         
         // Show selected section
         document.getElementById(section + '-section').style.display = 'block';
-        
-        // Add active to clicked nav item
-        event.target.closest('.settings-nav-item').classList.add('active');
     }
+    
+    // Language change handler - save ONLY, apply on NEXT load
+    function handleLanguageChange(selectElement) {
+        const selectedLang = selectElement.value;
+        
+        // Store in localStorage (will be applied on next page load)
+        localStorage.setItem('pendingLanguage', selectedLang);
+        
+        // Show confirmation that language will change after save
+        const btn = selectElement.closest('form').querySelector('button[type="submit"]');
+        if (btn) {
+            btn.innerHTML = '<i class="bi bi-check-lg me-1"></i> Save to apply language';
+        }
+    }
+    
+    // Apply pending language on page load
+    (function() {
+        const pendingLang = localStorage.getItem('pendingLanguage');
+        if (pendingLang) {
+            // Clear pending and apply
+            localStorage.removeItem('pendingLanguage');
+            localStorage.setItem('preferredLanguage', pendingLang);
+            document.documentElement.lang = pendingLang;
+            document.documentElement.setAttribute('dir', pendingLang === 'ar' || pendingLang === 'he' ? 'rtl' : 'ltr');
+        }
+        
+        // Also check stored preference
+        const storedLang = localStorage.getItem('preferredLanguage');
+        if (storedLang && !pendingLang) {
+            document.documentElement.lang = storedLang;
+            document.documentElement.setAttribute('dir', storedLang === 'ar' || storedLang === 'he' ? 'rtl' : 'ltr');
+        }
+    })();
+    
+    // Add language change listener to the select element
+    document.addEventListener('DOMContentLoaded', function() {
+        const langSelect = document.getElementById('languageSelect');
+        if (langSelect) {
+            langSelect.addEventListener('change', function() {
+                handleLanguageChange(this);
+            });
+            
+            // Check localStorage for stored language preference
+            const storedLang = localStorage.getItem('preferredLanguage');
+            if (storedLang && !langSelect.value) {
+                langSelect.value = storedLang;
+            }
+        }
+        
+        // Check if we just changed language and apply immediately from URL param
+        const urlParams = new URLSearchParams(window.location.search);
+        const lang = urlParams.get('lang');
+        if (lang) {
+            // Remove the lang parameter from URL to prevent reloading issues
+            const cleanUrl = window.location.pathname + window.location.hash;
+            window.history.replaceState({}, document.title, cleanUrl);
+            
+            // Apply translation immediately if function exists
+            if (typeof applyTranslation === 'function') {
+                applyTranslation(lang);
+            }
+            
+            // Update the select to show correct value and document lang
+            if (langSelect) {
+                langSelect.value = lang;
+            }
+            document.documentElement.lang = lang;
+            document.documentElement.setAttribute('dir', lang === 'ar' || lang === 'he' ? 'rtl' : 'ltr');
+            localStorage.setItem('preferredLanguage', lang);
+            
+            // Hide any loading overlay that might still be showing
+            const oldOverlay = document.getElementById('langLoadingOverlay');
+            if (oldOverlay) {
+                oldOverlay.remove();
+            }
+        }
+    });
 </script>

@@ -1,5 +1,5 @@
 @page
-@model TheChronicler.Web.Pages.Sessions.CreateModel
+@model ChroniclerWeb.Pages.Sessions.CreateModel
 @{
     ViewData["Title"] = "New Session";
 }
@@ -24,8 +24,8 @@
                             <label asp-for="Session.Title" class="form-label">Session Title</label>
                             <div class="input-group">
                                 <input asp-for="Session.Title" class="form-control" placeholder="The Goblin Ambush" id="SessionTitle" />
-                                <button type="button" class="btn btn-outline-secondary" onclick="generateRandomTitle()">
-                                    <i class="bi bi-shuffle"></i> Random
+                                <button type="button" class="btn btn-outline-secondary" onclick="genTitle()">
+                                    <i class="bi bi-shuffle"></i> <span data-t="Random">Random</span>
                                 </button>
                             </div>
                             <span asp-validation-for="Session.Title" class="text-danger"></span>
@@ -43,7 +43,15 @@
 
                     <div class="mb-3">
                         <label asp-for="Session.Summary" class="form-label">Summary</label>
-                        <textarea asp-for="Session.Summary" class="form-control" rows="2" placeholder="Brief summary of the session..."></textarea>
+                        <div class="d-flex gap-2 mb-2">
+                            <button type="button" class="btn btn-chronicle btn-sm" onclick="genSummary()">
+                                <i class="bi bi-magic me-1"></i> <span data-t="Generate Description">Generate Description</span>
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="genSummary()" id="regenSumBtn" style="display:none;">
+                                <i class="bi bi-arrow-clockwise me-1"></i> <span data-t="Regenerate">Regenerate</span>
+                            </button>
+                        </div>
+                        <textarea asp-for="Session.Summary" class="form-control" rows="2" placeholder="Brief summary of the session..." id="SessionSummary"></textarea>
                     </div>
 
                     <div class="mb-3">
@@ -52,7 +60,12 @@
                         <small class="text-muted">Supports basic text formatting. Write detailed notes about what happened during the session.</small>
                     </div>
 
-                    <!-- Tag Characters -->
+                    <div class="mb-3">
+                        <label class="form-label">Session Image (Optional)</label>
+                        <input type="file" name="ImageFile" class="form-control" accept="image/*" />
+                        <small class="text-muted">Upload an image for this session (PNG, JPG, WEBP)</small>
+                    </div>
+
                     @if (Model.AvailableCharacters.Any())
                     {
                         <div class="mb-3">
@@ -74,7 +87,6 @@
                         </div>
                     }
 
-                    <!-- Tag Locations -->
                     @if (Model.AvailableLocations.Any())
                     {
                         <div class="mb-3">
@@ -97,10 +109,10 @@
 
                     <div class="d-flex justify-content-between">
                         <a asp-page="/Sessions/Index" asp-route-campaignId="@Model.CampaignId" class="btn btn-outline-secondary">
-                            <i class="bi bi-arrow-left me-1"></i>Cancel
+                            <i class="bi bi-arrow-left me-1"></i><span data-t="Cancel">Cancel</span>
                         </a>
                         <button type="submit" class="btn btn-chronicle">
-                            <i class="bi bi-check-lg me-1"></i>Create Session
+                            <i class="bi bi-check-lg me-1"></i><span data-t="New Session">New Session</span>
                         </button>
                     </div>
                 </form>
@@ -111,19 +123,29 @@
 
 @section Scripts {
     <script>
-        function generateRandomTitle() {
-            const actions = ['Ambush', 'Betrayal', 'Discovery', 'Escape', 'Battle', 'Revelation', 'Journey', 'Confrontation', 'Alliance', 'Sacrifice'];
-            const subjects = ['Goblins', 'Dragons', 'Cultists', 'Bandits', 'Undead', 'Demons', 'Mercenaries', 'Nobles', 'Wizards', 'Ghosts'];
-            const places = ['the Dungeon', 'the Forest', 'the Mountains', 'the City', 'the Ruins', 'the Swamp', 'the Desert', 'the Castle'];
-            
-            const templates = [
-                `The ${actions[Math.floor(Math.random() * actions.length)]} of the ${subjects[Math.floor(Math.random() * subjects.length)]}`,
-                `${actions[Math.floor(Math.random() * actions.length)]} in ${places[Math.floor(Math.random() * places.length)]}`,
-                `Into the ${subjects[Math.floor(Math.random() * subjects.length)]}' Lair`,
-                `The ${subjects[Math.floor(Math.random() * subjects.length)]}' ${actions[Math.floor(Math.random() * actions.length)]}`
-            ];
-            
-            document.getElementById('SessionTitle').value = templates[Math.floor(Math.random() * templates.length)];
-        }
+        (function(){
+            var D={
+                en:{adj:['First','Opening','Discovery','Confrontation','Trial','Challenge','Victory','Defeat','Dark','Shadow','Hidden','Lost','Rising','Final','Turning','Awakening'],nouns:['Session','Chapter','Episode','Discovery','Journey','Quest','Trial','Battle','Awakening','Finale','Prologue','Crossroads','Threshold','Revelation','Encounter','Siege','Escape'],stories:['The party gathers at a tavern, discussing recent events. A mysterious stranger enters with urgent news that could change everything.','Dawn breaks as the adventurers journey through dangerous territory. Strange sounds echo from the shadows ahead.','In the depths of ancient ruins, discoveries await. The weight of history presses upon those who dare to explore.','A festival brings joy to the realm, but not all is as it seems. Someone watches from the crowd, waiting.','A storm rages outside as adventurers seek shelter. Locals warn of dark secrets hidden within these walls.']},
+                fr:{adj:['Premiere','Decouverte','Confrontation','Epreuve','Defi','Victoire','Defaite','Sombre','Ombre','Cachee','Perdue','Montante','Derniere','Tournante','Eveil'],nouns:['Session','Chapitre','Episode','Decouverte','Voyage','Quete','Epreuve','Bataille','Eveil','Finale','Prologue','Carrefour','Seuil','Revelation','Rencontre','Siege','Fuite'],stories:['Le groupe se reunie dans une taverne, discutant des recents evenements. Un etranger mysterieux entre avec des nouvelles urgentes.','L\'aube se leve alors que les aventuriers voyagent a travers un territoire dangereux. Des bruits etranges provennent de l\'ombre.','Dans les profondeurs de ruines anciennes, des decouvertes attendent. Le poids de l\'histoire pese sur ceux qui osent explorer.','Un festival apporte de la joie au royaume, mais tout n\'est pas ce qu\'il parait. Quelqu\'un observe depuis la foule.','Une tempete fait rage tandis que les aventuriers cherchent un abri. Les habitants mettent en garde contre de sombres secrets.']},
+                de:{adj:['Erste','Entdeckung','Konfrontation','Prufung','Herausforderung','Sieg','Niederlage','Dunkle','Schatten','Versteckt','Verloren','Erwachende','Letzte','Wendepunkt','Erweckung'],nouns:['Sitzung','Kapitel','Episode','Entdeckung','Reise','Quest','Prufung','Schlacht','Erweckung','Finale','Prolog','Kreuzweg','Schwelle','Enthullung','Begegnung','Belagerung','Flucht'],stories:['Die Gruppe versammelt sich in einer Taverne und diskutiert ubere kultige Ereignisse. Ein mysterioser Fremder betritt mit dringenden Neuigkeiten.','Die Dammerung bricht an, wahrend die Abenteurer durch gefahrliches Gebiet reisen. Seltsame Gerausche echoen aus dem Schatten.']},
+                es:{adj:['Primera','Descubrimiento','Confrontacion','Prueba','Desafio','Victoria','Derrota','Oscura','Sombra','Oculta','Perdida','Final','Despertar'],nouns:['Sesion','Capitulo','Episodio','Descubrimiento','Viaje','Busqueda','Prueba','Batalla','Despertar','Final','Prologo','Cruce','Umbral','Revelacion','Encuentro','Asedio','Fuga'],stories:['El grupo se reune en una taberna, discutiendo eventos recientes. Un extrano misterioso entra con noticias urgentes.','El amanecer rompe mientras los aventureros viajan por territorio peligroso. Sonidos extraños provienen de las sombras.']}
+            };
+            var lang=function(){return(localStorage.getItem('preferredLanguage')||'en').split('-')[0];};
+            var pick=function(a){return a[Math.floor(Math.random()*a.length)];};
+            var dict=function(){return D[lang()]||D.en;};
+
+            window.genTitle=function(){
+                var d=dict();
+                var t=pick(d.adj)+' '+pick(d.nouns);
+                document.getElementById('SessionTitle').value=t;
+            };
+
+            window.genSummary=function(){
+                var d=dict();
+                var s=pick(d.stories);
+                document.getElementById('SessionSummary').value=s;
+                document.getElementById('regenSumBtn').style.display='inline-block';
+            };
+        })();
     </script>
 }

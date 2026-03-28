@@ -1,5 +1,5 @@
 @page
-@model TheChronicler.Web.Pages.Locations.CreateModel
+@model ChroniclerWeb.Pages.Locations.CreateModel
 @{
     ViewData["Title"] = "New Location";
 }
@@ -21,32 +21,45 @@
 
                     <div class="mb-3">
                         <label asp-for="Location.Name" class="form-label">Location Name</label>
-                        <input asp-for="Location.Name" class="form-control" placeholder="The Sunken Citadel" />
+                        <div class="input-group">
+                            <input asp-for="Location.Name" class="form-control" placeholder="The Sunken Citadel" id="LocationName" />
+                            <button type="button" class="btn btn-outline-secondary" onclick="genLocName()">
+                                <i class="bi bi-shuffle"></i> <span data-t="Random">Random</span>
+                            </button>
+                        </div>
                         <span asp-validation-for="Location.Name" class="text-danger"></span>
                     </div>
 
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label asp-for="Location.Region" class="form-label">Region</label>
-                            <input asp-for="Location.Region" class="form-control" placeholder="Sword Coast, Underdark..." />
+                            <input asp-for="Location.Region" class="form-control" placeholder="Sword Coast, Underdark..." id="LocationRegion" />
                         </div>
                         <div class="col-md-6 mb-3">
                             <label asp-for="Location.Type" class="form-label">Type</label>
-                            <input asp-for="Location.Type" class="form-control" placeholder="City, Dungeon, Tavern, Forest..." />
+                            <input asp-for="Location.Type" class="form-control" placeholder="City, Dungeon, Tavern, Forest..." id="LocationType" />
                         </div>
                     </div>
 
                     <div class="mb-3">
                         <label asp-for="Location.Description" class="form-label">Description</label>
-                        <textarea asp-for="Location.Description" class="form-control" rows="4" placeholder="Describe this location..."></textarea>
+                        <div class="d-flex gap-2 mb-2">
+                            <button type="button" class="btn btn-chronicle btn-sm" onclick="genLocDesc()">
+                                <i class="bi bi-magic me-1"></i> <span data-t="Generate Description">Generate Description</span>
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="genLocDesc()" id="regenLocDescBtn" style="display:none;">
+                                <i class="bi bi-arrow-clockwise me-1"></i> <span data-t="Regenerate">Regenerate</span>
+                            </button>
+                        </div>
+                        <textarea asp-for="Location.Description" class="form-control" rows="4" placeholder="Describe this location..." id="LocationDescription"></textarea>
                     </div>
 
                     <div class="d-flex justify-content-between">
                         <a asp-page="/Locations/Index" asp-route-campaignId="@Model.CampaignId" class="btn btn-outline-secondary">
-                            <i class="bi bi-arrow-left me-1"></i>Cancel
+                            <i class="bi bi-arrow-left me-1"></i><span data-t="Cancel">Cancel</span>
                         </a>
                         <button type="submit" class="btn btn-chronicle">
-                            <i class="bi bi-check-lg me-1"></i>Create Location
+                            <i class="bi bi-check-lg me-1"></i><span data-t="New Location">New Location</span>
                         </button>
                     </div>
                 </form>
@@ -54,3 +67,37 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        (function(){
+            var D={
+                en:{prefixes:['Ancient','Lost','Hidden','Dark','Golden','Silver','Frozen','Shadow','Crystal','Iron','Storm','Star','Moon','Sun','Blood','Bone','Eternal','Forbidden','Sacred','Divine'],types:['Citadel','Temple','Tavern','Forest','Cave','Tower','Keep','Sanctuary','Ruins','Port','Village','City','Dungeon','Shrine','Palace','Library','Arena','Mount','Valley','Desert','Island','Volcano','Swamp','Canyon','Waterfall','Lake','River','Ocean','Fortress','Haven'],suffixes:['of Shadows','of Light','of Dreams','of Doom','of Hope','of the Ancients','of the Lost','of the Damned','of the Forgotten','of the Stars','of the Moon','of Winter','of the Abyss','of the Heavens'],stories:['An ancient structure stands against the test of time, its walls bearing witness to countless stories. Strange sounds echo through empty halls.','This place bustles with activity—merchants hawking wares, travelers seeking shelter, and adventurers planning their next expedition.','Deep within this place, secrets are kept that could change the world. Those who seek knowledge must brave its dangers.','This location rises like a beacon of hope in dark times. Pilgrims come from far and wide to seek its blessings.','Once-proud ruins now lie in decay, their former glory faded. But treasure may still remain for the brave.']},
+                fr:{prefixes:['Ancien','Perdu','Cache','Sombre','Dore','Argente','Gele','Ombre','Cristal','Fer','Tempete','Etoile','Lune','Soleil','Sang','Os','Eternel','Interdit','Sacré','Divin'],types:['Citadelle','Temple','Taverne','Foret','Caverne','Tour','Donjon','Sanctuaire','Ruines','Port','Village','Ville','Dungeon','Santuaire','Palais','Bibliotheque','Arene','Mont','Vallee','Desert','Ile','Volcan','Marais','Canyon','Cascade','Lac','Riviere','Ocean','Forteresse','Havre'],suffixes:['d\'Ombre','de Lumiere','de Reves','de Malheur','d\'Espoir','des Anciens','des Perdus','des Damnes','des Etoiles','de la Lune','d\'Hiver','de l\'Abime','des Cieux'],stories:['Une structure ancienne se dresse contre l\'epreuve du temps, ses murs temoignent de nombreuses histoires.','Ce lieu grouille d\'activite—commercants vendant leurs marchandises, voyageurs cherchant un abri.']},
+                de:{prefixes:['Alte','Verlorene','Versteckte','Dunkle','Goldene','Silberne','Gefrorene','Schatten','Kristall','Eisen','Sturm','Stern','Mond','Sonne','Blut','Knochen','Ewig','Verboten','Heilig','Gottlich'],types:['Zitadelle','Tempel','Taverne','Wald','Hohle','Turm','Burg','Heiligtum','Ruinen','Hafen','Dorf','Stadt','Verlies','Schrein','Palast','Bibliothek','Arena','Berg','Tal','Wuste','Insel','Vulkan','Sumpf','Schlucht','Wasserfall','See','Fluss','Ozean','Festung','Hafen'],suffixes:['der Schatten','des Lichts','der Traume','des Verderbens','der Hoffnung','der Alten','der Verlorenen','der Verdammten','der Sterne','des Mondes','des Winters'],stories:['Eine alte Struktur trotzt dem Test der Zeit.']},
+                es:{prefixes:['Antiguo','Perdido','Oculto','Oscuro','Dorado','Plateado','Congelado','Sombra','Cristal','Hierro','Tormenta','Estrella','Luna','Sol','Sangre','Hueso','Eterno','Prohibido','Sagrado','Divino'],types:['Ciudadela','Templo','Taberna','Bosque','Cueva','Torre','Castillo','Santuario','Ruinas','Puerto','Aldea','Ciudad','Mazmorra','Santuario','Palacio','Biblioteca','Arena','Monte','Valle','Desert','Isla','Volcan','Pantano','Canyon','Cascada','Lago','Rio','Oceano','Fortaleza','Refugio'],suffixes:['de Sombras','de Luz','de Suenos','de Perdicion','de Esperanza','de los Antiguos','de los Perdidos','de los Condenados','de las Estrellas','de la Luna','de Invierno','del Abismo','de los Cielos'],stories:['Una estructura antigua se mantiene contra la prueba del tiempo.']}
+            };
+            var lang=function(){return(localStorage.getItem('preferredLanguage')||'en').split('-')[0];};
+            var pick=function(a){return a[Math.floor(Math.random()*a.length)];};
+            var dict=function(){return D[lang()]||D.en;};
+
+            window.genLocName=function(){
+                var d=dict();
+                var r=Math.random();
+                var name;
+                if(r<0.3) name=pick(d.prefixes)+' '+pick(d.types);
+                else if(r<0.5) name=pick(d.prefixes)+' '+pick(d.types)+' '+pick(d.suffixes);
+                else if(r<0.7) name=pick(d.types)+' '+pick(d.suffixes);
+                else name=pick(d.types);
+                document.getElementById('LocationName').value=name;
+            };
+
+            window.genLocDesc=function(){
+                var d=dict();
+                var name=document.getElementById('LocationName').value||pick(d.types);
+                document.getElementById('LocationDescription').value=name+'. '+pick(d.stories)+' '+pick(d.stories);
+                document.getElementById('regenLocDescBtn').style.display='inline-block';
+            };
+        })();
+    </script>
+}
